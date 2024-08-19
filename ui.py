@@ -173,6 +173,7 @@ class Captioner:
 
     def display_image(self, event):
         try:
+            self.save_caption()
             selection = self.image_list.curselection()
             if not selection:
                 return
