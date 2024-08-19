@@ -115,11 +115,14 @@ def run_multiple(image_paths, trigger_phrase):
     model, processor = download_and_load_model()
     for image_path in image_paths:
         if load_file_as_string(image_path.rsplit(".", 1)[0] + ".txt") == "":
+            vanilla_caption = ""
             vanilla_caption = process_single_image(image_path, model, processor)
             if trigger_phrase != "":
                 caption = rewrite_caption_with_trigger_phrase(
                     vanilla_caption, trigger_phrase
                 )
+            else: 
+                caption = vanilla_caption
             save_caption_to_file(caption, image_path.rsplit(".", 1)[0] + ".txt")
         
         
