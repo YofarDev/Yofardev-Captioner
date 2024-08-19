@@ -7,9 +7,13 @@ Simple program to help write caption for images. Used [CaptionIMG](https://githu
 ## Installation
 
 > git clone https://github.com/YofarDev/Yofardev-Captioner.git
+
 > cd Yofardev-Captioner
+
 > python3 -m venv venv
+
 > source venv/bin/activate
+
 > pip install -r requirements.txt
 
 ## Usage
