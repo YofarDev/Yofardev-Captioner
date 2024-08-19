@@ -7,7 +7,7 @@ from tkinter import Entry, Listbox, filedialog, messagebox
 from PIL import Image, ImageTk
 
 from florence2_inference import run_single, run_multiple
-from utils import  sort_files, save_caption_to_file
+from utils import  sort_files, save_caption_to_file, check_file_exists
 
 
 class Captioner:
@@ -252,11 +252,13 @@ class Captioner:
         try:
             with open("session.json", "r") as f:
                 session_data = json.load(f)
-
+            self.file_map = session_data.get("file_map", {})
+            for file_name, file_path in self.file_map.items():
+                if not check_file_exists(file_path):
+                    return     
             self.trigger_entry.insert(0, session_data.get("trigger_phrase", ""))
             self.current_folder = session_data.get("current_folder", "")
             self.current_image = session_data.get("current_image", "")
-            self.file_map = session_data.get("file_map", {})
 
             if self.current_folder:
                 self.load_images_from_folder(self.current_folder)

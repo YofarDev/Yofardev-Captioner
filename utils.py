@@ -77,5 +77,8 @@ def load_file_as_string(file_path):
     except FileNotFoundError:
         return ""
     
+def check_file_exists(file_path):
+    return os.path.isfile(file_path)
+    
 
 
