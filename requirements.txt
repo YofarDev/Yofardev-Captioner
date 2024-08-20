@@ -1,1 +1,4 @@
 Pillow
+torch
+huggingface_hub
+transformers
