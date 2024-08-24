@@ -1,4 +1,3 @@
-from email.mime import image
 import os
 from glob import glob
 from unittest.mock import patch
@@ -8,7 +7,10 @@ from huggingface_hub import snapshot_download
 from PIL import Image
 from transformers import AutoModelForCausalLM, AutoProcessor
 from transformers.dynamic_module_utils import get_imports
-from utils import rewrite_caption_with_trigger_phrase, save_caption_to_file, load_file_as_string
+
+from utils import (load_file_as_string, rewrite_caption_with_trigger_phrase,
+                   save_caption_to_file)
+
 
 def fixed_get_imports(filename: str | os.PathLike) -> list[str]:
     if not str(filename).endswith("modeling_florence2.py"):
@@ -97,7 +99,7 @@ def process_single_image(image_path, model, processor):
         [image_path], model, processor, task="caption", detail_mode=3
     )
     if captions:
-        return captions[0] 
+        return captions[0]
     else:
         print(f"Failed to generate caption for {image_path}")
 
@@ -106,10 +108,11 @@ def run_single(image_path, trigger_phrase):
     model, processor = download_and_load_model()
     vanilla_caption = process_single_image(image_path, model, processor)
     if trigger_phrase != "":
-            caption = rewrite_caption_with_trigger_phrase(
-                vanilla_caption, trigger_phrase
-            )
+        caption = rewrite_caption_with_trigger_phrase(vanilla_caption, trigger_phrase)
+    else:
+        caption = vanilla_caption
     return caption
+
 
 def run_multiple(image_paths, trigger_phrase):
     model, processor = download_and_load_model()
@@ -121,8 +124,6 @@ def run_multiple(image_paths, trigger_phrase):
                 caption = rewrite_caption_with_trigger_phrase(
                     vanilla_caption, trigger_phrase
                 )
-            else: 
+            else:
                 caption = vanilla_caption
             save_caption_to_file(caption, image_path.rsplit(".", 1)[0] + ".txt")
-        
-        
