@@ -95,6 +95,46 @@ class Captioner:
         tk.Radiobutton(self.control_frame, text="For this image", variable=self.florence2_mode, value="single").pack(side="left", padx=5)
         tk.Radiobutton(self.control_frame, text="For all empty captions", variable=self.florence2_mode, value="all").pack(side="left", padx=5)
 
+    def run_florence2(self):
+        if self.florence2_mode.get() == "single":
+            caption = run_single(self.current_image_path, self.trigger_entry.get())
+            self.text_entry.delete(1.0, "end")
+            self.text_entry.insert(1.0, caption)    
+        else:
+            file_paths = list(self.file_map.values())
+            run_multiple(file_paths, self.trigger_entry.get())
+
+    def open_folder(self):
+        try:
+            folder_path = filedialog.askdirectory()
+            if folder_path:
+                self.current_folder = folder_path
+                self.load_images_from_folder(folder_path)
+                self.save_session()
+        except Exception as e:
+            print(f"Error opening folder: {e}")
+            pass
+
+    def open_images(self):
+        try:
+            file_types = "*.bmp *.jpg *.jpeg *.png"
+            file_paths = filedialog.askopenfilenames(
+                filetypes=[("Common Image Files", file_types), ("All", "*.*")]
+            )
+            file_paths = sort_files(file_paths)
+            if file_paths:
+                self.current_folder = os.path.dirname(file_paths[0])
+                self.image_list.delete("0", "end")
+                self.file_map = {}
+                for file_path in file_paths:
+                    file_name = os.path.basename(file_path)
+                    self.file_map[file_name] = file_path
+                    self.image_list.insert("end", file_name)
+                self.save_session()
+        except Exception as e:
+            print(f"Error opening images: {e}")
+            pass
+
     def bind_events(self):
         self.image_list.bind("<<ListboxSelect>>", display_image)
         self.root.bind("<Control-s>", save_caption)
