@@ -16,7 +16,7 @@ class Captioner:
         self.current_image_path = ""
         self.florence2_mode = tk.StringVar(value="single")
         self.setup_ui()
-        self.load_session()
+        load_session(self)
 
     def setup_ui(self):
         self.setup_window()
