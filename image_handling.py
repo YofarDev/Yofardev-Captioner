@@ -1,5 +1,7 @@
 import os
+import glob
 from PIL import Image, ImageTk
+from utils import sort_files
 
 def load_images_from_folder(self, folder_path):
     self.image_list.delete("0", "end")

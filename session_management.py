@@ -24,13 +24,13 @@ def load_session(self):
         self.current_image = session_data.get("current_image", "")
 
         if self.current_folder:
-            load_images_from_folder(self, self.current_folder)
+            self.load_images_from_folder(self.current_folder)
 
         if self.current_image:
             self.image_list.select_set(
                 self.image_list.get(0, "end").index(self.current_image)
             )
-            display_image(self, None)
+            self.display_image(None)
     except FileNotFoundError:
         print("No previous session found.")
     except json.JSONDecodeError:
