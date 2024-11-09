@@ -1,5 +1,6 @@
 import json
 from utils import check_file_exists
+from image_handling import load_images_from_folder
 
 def save_session(self):
     session_data = {
@@ -24,7 +25,7 @@ def load_session(self):
         self.current_image = session_data.get("current_image", "")
 
         if self.current_folder:
-            self.load_images_from_folder(self.current_folder)
+            load_images_from_folder(self, self.current_folder)
 
         if self.current_image:
             self.image_list.select_set(
