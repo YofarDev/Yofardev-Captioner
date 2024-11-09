@@ -84,9 +84,9 @@ class Captioner:
         
     def setup_buttons(self):
         buttons = [
-            ("Load Folder", open_folder),
-            ("Load Image(s)", open_images),
-            ("Run Florence2", run_florence2),
+            ("Load Folder", self.open_folder),
+            ("Load Image(s)", self.open_images),
+            ("Run Florence2", self.run_florence2),
         ]
         for text, command in buttons:
             tk.Button(self.control_frame, text=text, command=command).pack(
