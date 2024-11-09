@@ -18,8 +18,8 @@ def open_folder(self):
         folder_path = filedialog.askdirectory()
         if folder_path:
             self.current_folder = folder_path
-            load_images_from_folder(self, folder_path)
-            save_session(self)
+            self.load_images_from_folder(folder_path)
+            self.save_session()
     except Exception as e:
         print(f"Error opening folder: {e}")
         pass
@@ -39,7 +39,7 @@ def open_images(self):
                 file_name = os.path.basename(file_path)
                 self.file_map[file_name] = file_path
                 self.image_list.insert("end", file_name)
-            save_session(self)
+            self.save_session()
     except Exception as e:
         print(f"Error opening images: {e}")
         pass
@@ -55,4 +55,4 @@ def save_caption(self, event=None):
         )
 
 def on_trigger_change(self, event):
-    save_session(self)
+    self.save_session()
