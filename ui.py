@@ -1,13 +1,14 @@
 import glob
-import json
 import os
 import tkinter as tk
 from tkinter import Entry, Listbox, filedialog, messagebox
 
 from PIL import Image, ImageTk
 
-from florence2_inference import run_single, run_multiple
-from utils import  sort_files, save_caption_to_file, check_file_exists
+from rename_images import rename_files_to_numbers
+from session_file import load_session, save_session
+from utils import save_caption_to_file, sort_files
+from vision_service import on_run_pressed
 
 
 class Captioner:
@@ -17,11 +18,11 @@ class Captioner:
         self.current_folder = ""
         self.current_image = ""
         self.current_image_path = ""
-        self.florence2_mode = tk.StringVar(value="single")
+        self.caption_mode = tk.StringVar(value="single")
+        self.selected_model = tk.StringVar(value="Florence2")
+        self.gpt_last_used = None
         self.setup_ui()
-        self.load_session()
-
-
+        load_session(self)
 
     def setup_ui(self):
         self.setup_window()
@@ -31,19 +32,15 @@ class Captioner:
         self.setup_text_entry()
         self.setup_control_frame()
         self.bind_events()
-        
+
     def center_window(self):
-        # Get the screen width and height
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         width = int(screen_width / 1.5)
         height = int(screen_height / 1.5)
-        # Calculate the position for the window to be centered
         x = (screen_width // 2) - (width // 2)
         y = (screen_height // 2) - (height // 2)
-        #self.root.geometry(f"{int(screen_width/1.5)}x{int(screen_height/1.5)}")
-        self.root.geometry('%dx%d+%d+%d' % (width, height, x, y))
-
+        self.root.geometry("%dx%d+%d+%d" % (width, height, x, y))
 
     def setup_window(self):
         self.root.title("Yofardev Captioner")
@@ -83,42 +80,83 @@ class Captioner:
         self.text_entry.pack(side="bottom", fill="both")
 
     def setup_control_frame(self):
-        self.setup_trigger_entry()
-        self.setup_buttons()
+        # Create two separate frames for the rows
+        self.top_row_frame = tk.Frame(self.control_frame)
+        self.top_row_frame.pack(fill="x", pady=(0, 5))
 
-    def setup_trigger_entry(self):
-        tk.Label(self.control_frame, text="Trigger Phrase:").pack(side="left", padx=5)
-        self.trigger_entry = Entry(self.control_frame, width=20)
-        self.trigger_entry.pack(side="left", padx=5)
-        
-    def setup_buttons(self):
+        self.bottom_row_frame = tk.Frame(self.control_frame)
+        self.bottom_row_frame.pack(fill="x")
+
+        self.setup_first_row()
+        self.setup_second_row()
+
+    def setup_first_row(self):
         buttons = [
             ("Load Folder", self.open_folder),
             ("Load Image(s)", self.open_images),
-            ("Run Florence2", self.run_florence2),
+            ("Rename Images", self.rename_images),
         ]
         for text, command in buttons:
-            tk.Button(self.control_frame, text=text, command=command).pack(
+            tk.Button(self.top_row_frame, text=text, command=command).pack(
                 side="left", padx=5
             )
-        tk.Radiobutton(self.control_frame, text="For this image", variable=self.florence2_mode, value="single").pack(side="left", padx=5)
-        tk.Radiobutton(self.control_frame, text="For all empty captions", variable=self.florence2_mode, value="all").pack(side="left", padx=5)
 
+    def setup_trigger_entry(self):
+        tk.Label(self.bottom_row_frame, text="Trigger Phrase:").pack(
+            side="left", padx=5
+        )
+        self.trigger_entry = Entry(self.bottom_row_frame, width=20)
+        self.trigger_entry.pack(side="left", padx=5)
+
+    def setup_model_dropdown(self):
+        tk.Label(self.bottom_row_frame, text="Model:").pack(side="left", padx=5)
+        models = [
+            "Florence2",
+            "GPT4o",
+            "Pixtral",
+        ]
+        self.model_dropdown = tk.OptionMenu(
+            self.bottom_row_frame, self.selected_model, *models
+        )
+        self.model_dropdown.pack(side="left", padx=5)
+
+    def setup_second_row(self):
+        self.setup_trigger_entry()
+        self.setup_model_dropdown()
+        tk.Button(self.bottom_row_frame, text="Run", command=self.run_model).pack(
+            side="left", padx=5
+        )
+        tk.Radiobutton(
+            self.bottom_row_frame,
+            text="For this image",
+            variable=self.caption_mode,
+            value="single",
+        ).pack(side="left", padx=5)
+        tk.Radiobutton(
+            self.bottom_row_frame,
+            text="For all empty captions",
+            variable=self.caption_mode,
+            value="all",
+        ).pack(side="left", padx=5)
 
     def bind_events(self):
         self.image_list.bind("<<ListboxSelect>>", self.display_image)
         self.root.bind("<Control-s>", self.save_caption)
         self.trigger_entry.bind("<KeyRelease>", self.on_trigger_change)
 
-    def run_florence2(self):
-        if self.florence2_mode.get() == "single":
-            caption = run_single(self.current_image_path, self.trigger_entry.get())
-            self.text_entry.delete(1.0, "end")
-            self.text_entry.insert(1.0, caption)    
-        else:
-            file_paths = list(self.file_map.values())
-            run_multiple(file_paths, self.trigger_entry.get())
-        
+    def run_model(self):
+        model = self.selected_model.get()
+        file_paths = list(self.file_map.values())
+        caption = on_run_pressed(
+            self,
+            self.caption_mode.get(),
+            model,
+            file_paths,
+            self.image_list.curselection()[0],
+            self.trigger_entry.get(),
+        )
+        self.text_entry.delete(1.0, "end")
+        self.text_entry.insert(1.0, caption)
 
     def open_folder(self):
         try:
@@ -126,10 +164,9 @@ class Captioner:
             if folder_path:
                 self.current_folder = folder_path
                 self.load_images_from_folder(folder_path)
-                self.save_session()
+                save_session(self)
         except Exception as e:
             print(f"Error opening folder: {e}")
-            pass
 
     def load_images_from_folder(self, folder_path):
         self.image_list.delete("0", "end")
@@ -158,18 +195,22 @@ class Captioner:
                     file_name = os.path.basename(file_path)
                     self.file_map[file_name] = file_path
                     self.image_list.insert("end", file_name)
-                self.save_session()
+                save_session(self)
         except Exception as e:
             print(f"Error opening images: {e}")
-            pass
-        
+
+    def rename_images(self):
+        rename_files_to_numbers(self.current_folder)
+        self.load_images_from_folder(self.current_folder)
+        save_session(self)
+
     def update_list_colors(self):
-        self.image_list.itemconfig(0, {'bg':'white'})
+        self.image_list.itemconfig(0, {"bg": "white"})
         for i in range(self.image_list.size()):
             if self.image_list.get(i) == self.current_image:
-                self.image_list.itemconfig(i, {'bg':'light blue'})
+                self.image_list.itemconfig(i, {"bg": "light blue"})
             else:
-                self.image_list.itemconfig(i, {'bg':'black'})
+                self.image_list.itemconfig(i, {"bg": "black"})
 
     def display_image(self, event):
         try:
@@ -226,11 +267,13 @@ class Captioner:
             self.update_list_colors()
         except Exception as e:
             print(f"Error loading image: {e}")
-            pass
+            messagebox.showinfo("Error", f"There was an error loading the image: {e}")
 
     def save_caption(self, event=None):
         try:
-            description = self.text_entry.get(1.0, "end")
+            description = self.text_entry.get(1.0, "end").strip()
+            if description == "":
+                return
             description_file = str(self.current_image_path).rsplit(".", 1)[0] + ".txt"
             save_caption_to_file(description, description_file)
         except Exception as e:
@@ -238,40 +281,11 @@ class Captioner:
                 "Error", f"There was an error while saving the captions: {e}"
             )
 
-    def save_session(self):
-        session_data = {
-            "trigger_phrase": self.trigger_entry.get(),
-            "current_folder": self.current_folder,
-            "current_image": self.current_image,
-            "file_map": self.file_map,
-        }
-        with open("session.json", "w") as f:
-            json.dump(session_data, f)
-
-    def load_session(self):
-        try:
-            with open("session.json", "r") as f:
-                session_data = json.load(f)
-            self.file_map = session_data.get("file_map", {})
-            for file_name, file_path in self.file_map.items():
-                if not check_file_exists(file_path):
-                    return     
-            self.trigger_entry.insert(0, session_data.get("trigger_phrase", ""))
-            self.current_folder = session_data.get("current_folder", "")
-            self.current_image = session_data.get("current_image", "")
-
-            if self.current_folder:
-                self.load_images_from_folder(self.current_folder)
-
-            if self.current_image:
-                self.image_list.select_set(
-                    self.image_list.get(0, "end").index(self.current_image)
-                )
-                self.display_image(None)
-        except FileNotFoundError:
-            print("No previous session found.")
-        except json.JSONDecodeError:
-            print("Error decoding session file.")
-
     def on_trigger_change(self, event):
-        self.save_session()
+        save_session(self)
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = Captioner(root)
+    root.mainloop()

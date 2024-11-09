@@ -1,7 +1,13 @@
 import tkinter as tk
-from ui_components import Captioner
+
+from ui import Captioner
+
+
+def main():
+    root = tk.Tk()
+    Captioner(root)
+    root.mainloop()
+
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = Captioner(root)
-    root.mainloop()
+    main()

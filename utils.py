@@ -1,7 +1,8 @@
 import glob
 import os
 import re
-
+import base64
+from mimetypes import guess_type
 
 def extract_first_sentence(text):
     match = re.match(r"([^.!?]*[.!?])", text)
@@ -79,6 +80,15 @@ def load_file_as_string(file_path):
     
 def check_file_exists(file_path):
     return os.path.isfile(file_path)
+
+# Function to encode a local image into data URL 
+def local_image_to_data_url(image_path):
+    mime_type, _ = guess_type(image_path)
+    if mime_type is None:
+        mime_type = 'application/octet-stream'  # Default MIME type if none is found
+    with open(image_path, "rb") as image_file:
+        base64_encoded_data = base64.b64encode(image_file.read()).decode('utf-8')
+    return f"data:{mime_type};base64,{base64_encoded_data}"
     
 
 
