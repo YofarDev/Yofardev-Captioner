@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from tkinter import Entry, Listbox, filedialog, messagebox
 from PIL import Image, ImageTk
