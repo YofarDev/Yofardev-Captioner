@@ -8,13 +8,16 @@ def describe_image(image_path, trigger_phrase):
     api_key = os.environ["MISTRAL_API_KEY"]
     model = "pixtral-12b-2409"
     client = Mistral(api_key=api_key)
+    prompt = "Reply with a paragraph describing this image and nothing else."
+    if trigger_phrase != "":
+        prompt =f"{prompt} Start the description with the following phrase: '{trigger_phrase}'"
     messages = [
         {
             "role": "user",
             "content": [
                 {
                     "type": "text",
-                    "text": "Reply with a paragraph describing this image and nothing else."
+                    "text": prompt
                 },
                 {
                     "type": "image_url",

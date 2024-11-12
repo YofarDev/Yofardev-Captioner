@@ -58,7 +58,6 @@ def run_model(
     )
     inputs["input_ids"].append(input_data["input_ids"])
     inputs["pixel_values"].append(input_data["pixel_values"])
-    print(f"Processing image: {image_path}")
     inputs["input_ids"] = torch.cat(inputs["input_ids"]).to(device)
     inputs["pixel_values"] = torch.cat(inputs["pixel_values"]).to(device)
     generated_ids = model.generate(

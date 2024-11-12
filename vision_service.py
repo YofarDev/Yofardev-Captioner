@@ -6,7 +6,6 @@ import time
 from session_file import save_session
 from utils import (
     load_file_as_string,
-    rewrite_caption_with_trigger_phrase,
     save_caption_to_file,
 )
 
@@ -29,12 +28,7 @@ def get_caption(model, image_path, trigger_phrase):
 
 
 
-def save_caption(caption, trigger_phrase, image_path):
-    vanilla_caption = caption
-    if trigger_phrase != "":
-        caption = rewrite_caption_with_trigger_phrase(vanilla_caption, trigger_phrase)
-    else:
-        caption = vanilla_caption
+def save_caption(caption, image_path):
     save_caption_to_file(caption, image_path.rsplit(".", 1)[0] + ".txt")
     
 def debounce(self):
@@ -52,14 +46,14 @@ def on_run_pressed(self, caption_mode, model, image_paths, index, trigger_phrase
     caption = ''
     if caption_mode == "single":
         caption = get_caption(model, image_paths[index], trigger_phrase)
-        save_caption(caption, trigger_phrase, image_paths[index])
+        save_caption(caption, image_paths[index])
     else:
         for i, img in enumerate(image_paths):
             if load_file_as_string(img.rsplit(".", 1)[0] + ".txt") == "":
                 if model == "GPT4o":
                     debounce(self)
                 c = get_caption(model, img, trigger_phrase)
-                save_caption(c, trigger_phrase, img)
+                save_caption(c, img)
                 if i == index:
                     caption = c
     return caption
