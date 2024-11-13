@@ -7,7 +7,7 @@ from PIL import Image, ImageTk
 
 from rename_images import rename_files_to_numbers
 from session_file import load_session, save_session
-from utils import save_caption_to_file, sort_files
+from utils import save_caption_to_file, sort_files, sort_by_name
 from vision_service import on_run_pressed
 
 
@@ -21,6 +21,7 @@ class Captioner:
         self.caption_mode = tk.StringVar(value="single")
         self.selected_model = tk.StringVar(value="Florence2")
         self.gpt_last_used = None
+        self.index = 0
         self.setup_ui()
         load_session(self)
 
@@ -53,6 +54,9 @@ class Captioner:
         self.control_frame = tk.Frame(self.root)
         self.control_frame.pack(side="bottom", fill="x", pady=10)
 
+        # ... (Existing code remains unchanged)
+
+    # ... (Existing methods up to setup_image_list remain unchanged)
     def setup_image_list(self):
         self.image_list = Listbox(self.frame_list, width=30)
         self.setup_scrollbars()
@@ -168,14 +172,17 @@ class Captioner:
         except Exception as e:
             print(f"Error opening folder: {e}")
 
+
+
     def load_images_from_folder(self, folder_path):
         self.image_list.delete("0", "end")
         self.file_map = {}
         file_types = ("*.bmp", "*.jpg", "*.jpeg", "*.png")
         for file_type in file_types:
-            for file_path in sort_files(
-                glob.glob(os.path.join(folder_path, file_type))
-            ):
+            # Get all files of the current type and sort them
+            files = glob.glob(os.path.join(folder_path, file_type))
+            sorted_files = sort_by_name(files)
+            for file_path in sorted_files:
                 file_name = os.path.basename(file_path)
                 self.file_map[file_name] = file_path
                 self.image_list.insert("end", file_name)
@@ -220,8 +227,8 @@ class Captioner:
                 return
 
             self.text_entry.delete(1.0, "end")
-            index = selection[0]
-            file_name = self.image_list.get(index)
+            self.index = selection[0]
+            file_name = self.image_list.get(self.index)
             file_path = self.file_map[file_name]
             self.current_image = file_name
             self.current_image_path = file_path
@@ -289,3 +296,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = Captioner(root)
     root.mainloop()
+

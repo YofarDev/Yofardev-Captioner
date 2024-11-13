@@ -56,6 +56,10 @@ def sort_files(files_path):
         return [convert(c) for c in re.split("([0-9]+)", key)]
     return sorted(files_path, key=alphanum_key)
 
+def sort_by_name(file_list):
+    # Sort the files alphabetically by their basename
+    return sorted(file_list, key=lambda x: os.path.basename(x).lower())
+
 def load_images_from_folder(folder_path):
     file_map = {}
     file_types = ("*.bmp", "*.jpg", "*.jpeg", "*.png")
