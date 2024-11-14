@@ -1,6 +1,6 @@
 # Yofardev Captioner
 
-Simple program to help write caption for images. Used [CaptionIMG](https://github.com/ANTONIOPSD/CaptionIMG) as a base for the project.
+Simple program to help write caption for images. With the help of vision models (currently : Florence2 localy, or GPT4o and Pixtral).
 
 ![1724075364478](image/README/ui.png)
 
@@ -17,5 +17,17 @@ Simple program to help write caption for images. Used [CaptionIMG](https://githu
 > pip install -r requirements.txt
 
 ## Usage
+
+Create a .env file at the root of the project with the following content:
+
+```
+GITHUB_API_KEY=your-github-api-key
+MISTRAL_API_KEY=your-mistral-api-key
+GEMINI_API_KEY=your-gemini-api-key
+```
+
+Replace with your actual API keys.
+
+Run the program:
 
 > python3 main.py

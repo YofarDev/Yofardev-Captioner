@@ -59,7 +59,6 @@ def sort_files(files_path):
 def sort_by_name(file_list):
     try:
         sorted_files = sorted(file_list, key=lambda x: os.path.basename(x).lower())
-        print("Sorted files:", sorted_files)  # Debugging print statement
         return sorted_files
     except Exception as e:
         print(f"Error sorting files: {e}")
