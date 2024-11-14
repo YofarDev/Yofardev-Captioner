@@ -1,13 +1,14 @@
 import glob
 import os
 import tkinter as tk
-from tkinter import Entry, Listbox, filedialog, messagebox
+from tkinter import Entry, filedialog, messagebox
 
 from PIL import Image, ImageTk
 
 from rename_images import rename_files_to_numbers
 from session_file import load_session, save_session
-from utils import save_caption_to_file, sort_files, sort_by_name
+from thumbnail import ThumbnailListbox
+from utils import save_caption_to_file, sort_by_name, sort_files
 from vision_service import on_run_pressed
 
 
@@ -54,13 +55,9 @@ class Captioner:
         self.control_frame = tk.Frame(self.root)
         self.control_frame.pack(side="bottom", fill="x", pady=10)
 
-        # ... (Existing code remains unchanged)
-
-    # ... (Existing methods up to setup_image_list remain unchanged)
     def setup_image_list(self):
-        self.image_list = Listbox(self.frame_list, width=30)
-        self.setup_scrollbars()
-        self.image_list.pack(side="left", fill="both")
+        self.image_list = ThumbnailListbox(self.frame_list)
+        self.image_list.pack(side="left", fill="both", expand=True)
 
     def setup_scrollbars(self):
         h_scrollbar = tk.Scrollbar(self.frame_list, orient="horizontal")
@@ -172,20 +169,25 @@ class Captioner:
         except Exception as e:
             print(f"Error opening folder: {e}")
 
-
-
     def load_images_from_folder(self, folder_path):
-        self.image_list.delete("0", "end")
+        for item in self.image_list.items:
+            item.destroy()
         self.file_map = {}
         file_types = ("*.bmp", "*.jpg", "*.jpeg", "*.png")
+        all_files = []
+        
+        # Collect all files first
         for file_type in file_types:
-            # Get all files of the current type and sort them
-            files = glob.glob(os.path.join(folder_path, file_type))
-            sorted_files = sort_by_name(files)
-            for file_path in sorted_files:
-                file_name = os.path.basename(file_path)
-                self.file_map[file_name] = file_path
-                self.image_list.insert("end", file_name)
+            all_files.extend(glob.glob(os.path.join(folder_path, file_type)))
+        
+        # Sort all files by name
+        sorted_files = sort_by_name(all_files)
+        
+        # Insert sorted files into the image list
+        for file_path in sorted_files:
+            file_name = os.path.basename(file_path)
+            self.file_map[file_name] = file_path
+            self.image_list.insert(file_path, file_name)
 
     def open_images(self):
         try:
@@ -196,12 +198,13 @@ class Captioner:
             file_paths = sort_files(file_paths)
             if file_paths:
                 self.current_folder = os.path.dirname(file_paths[0])
-                self.image_list.delete("0", "end")
+                for item in self.image_list.items:
+                    item.destroy()
                 self.file_map = {}
                 for file_path in file_paths:
                     file_name = os.path.basename(file_path)
                     self.file_map[file_name] = file_path
-                    self.image_list.insert("end", file_name)
+                    self.image_list.insert(file_path, file_name)
                 save_session(self)
         except Exception as e:
             print(f"Error opening images: {e}")
@@ -211,59 +214,41 @@ class Captioner:
         self.load_images_from_folder(self.current_folder)
         save_session(self)
 
-    def update_list_colors(self):
-        self.image_list.itemconfig(0, {"bg": "white"})
-        for i in range(self.image_list.size()):
-            if self.image_list.get(i) == self.current_image:
-                self.image_list.itemconfig(i, {"bg": "light blue"})
-            else:
-                self.image_list.itemconfig(i, {"bg": "black"})
-
     def display_image(self, event):
         try:
             self.save_caption()
             selection = self.image_list.curselection()
             if not selection:
                 return
-
             self.text_entry.delete(1.0, "end")
             self.index = selection[0]
             file_name = self.image_list.get(self.index)
             file_path = self.file_map[file_name]
             self.current_image = file_name
             self.current_image_path = file_path
-
             screen_width = self.root.winfo_screenwidth()
             screen_height = self.root.winfo_screenheight()
-
             max_size = int(screen_width / 2), int(screen_height / 2.1)
-
             image = Image.open(file_path)
-
             original_width, original_height = image.size
             aspect_ratio = original_width / original_height
             new_width, new_height = max_size
-
             if original_width > original_height:
                 new_height = int(new_width / aspect_ratio)
             else:
                 new_width = int(new_height * aspect_ratio)
-
             if new_width > max_size[0]:
                 new_width = max_size[0]
                 new_height = int(new_width / aspect_ratio)
             if new_height > max_size[1]:
                 new_height = max_size[1]
                 new_width = int(new_height * aspect_ratio)
-
             image = image.resize((new_width, new_height), Image.LANCZOS)
             image = ImageTk.PhotoImage(image)
             self.image_label.config(image=image)
             self.image_label.image = image
             self.image_label.config(borderwidth=5, relief="groove")
-
             description_file = str(self.current_image_path).rsplit(".", 1)[0] + ".txt"
-
             if os.path.isfile(description_file):
                 with open(description_file, "r") as file:
                     description = file.read()
@@ -271,7 +256,6 @@ class Captioner:
             else:
                 self.text_entry.delete(1.0, "end")
             self.root.title(f"Yofardev Captioner - {self.current_image}")
-            self.update_list_colors()
         except Exception as e:
             print(f"Error loading image: {e}")
             messagebox.showinfo("Error", f"There was an error loading the image: {e}")
@@ -296,4 +280,3 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = Captioner(root)
     root.mainloop()
-

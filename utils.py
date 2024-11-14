@@ -57,8 +57,13 @@ def sort_files(files_path):
     return sorted(files_path, key=alphanum_key)
 
 def sort_by_name(file_list):
-    # Sort the files alphabetically by their basename
-    return sorted(file_list, key=lambda x: os.path.basename(x).lower())
+    try:
+        sorted_files = sorted(file_list, key=lambda x: os.path.basename(x).lower())
+        print("Sorted files:", sorted_files)  # Debugging print statement
+        return sorted_files
+    except Exception as e:
+        print(f"Error sorting files: {e}")
+        return file_list
 
 def load_images_from_folder(folder_path):
     file_map = {}
