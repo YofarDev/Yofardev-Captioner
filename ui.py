@@ -75,10 +75,30 @@ class Captioner:
         self.image_label.pack(side="top", anchor="center")
         self.image_label.pack_propagate(False)
 
+        # Add a label to display resolution and aspect ratio
+        self.resolution_label = tk.Label(self.root, text="", font=("Arial", 10))
+        self.resolution_label.pack(side="top", anchor="center", pady=5)
+
     def setup_text_entry(self):
         self.text_entry = tk.Text(self.root, height=6, width=85, wrap="word")
         self.text_entry.config(borderwidth=5, relief="groove")
         self.text_entry.pack(side="bottom", fill="both")
+        # Enable the undo mechanism
+        self.text_entry.config(undo=True, autoseparators=True, maxundo=-1)
+
+    def undo_text(self, event):
+        try:
+            self.text_entry.edit_undo()
+        except tk.TclError:
+            # Ignore the error if there's nothing to undo
+            pass
+
+    def redo_text(self, event):
+        try:
+            self.text_entry.edit_redo()
+        except tk.TclError:
+            # Ignore the error if there's nothing to redo
+            pass
 
     def setup_control_frame(self):
         # Create two separate frames for the rows
@@ -95,7 +115,7 @@ class Captioner:
         buttons = [
             ("Load Folder", self.open_folder),
             ("Load Image(s)", self.open_images),
-            ("Rename Images", self.rename_images),
+            ("Rename all images", self.rename_images),
         ]
         for text, command in buttons:
             tk.Button(self.top_row_frame, text=text, command=command).pack(
@@ -144,6 +164,8 @@ class Captioner:
         self.image_list.bind("<<ListboxSelect>>", self.display_image)
         self.root.bind("<Control-s>", self.save_caption)
         self.trigger_entry.bind("<KeyRelease>", self.on_trigger_change)
+        self.text_entry.bind("<Control-z>", self.undo_text)
+        self.text_entry.bind("<Control-y>", self.redo_text)
 
     def run_model(self):
         model = self.selected_model.get()
@@ -175,14 +197,14 @@ class Captioner:
         self.file_map = {}
         file_types = ("*.bmp", "*.jpg", "*.jpeg", "*.png")
         all_files = []
-        
+
         # Collect all files first
         for file_type in file_types:
             all_files.extend(glob.glob(os.path.join(folder_path, file_type)))
-        
+
         # Sort all files by name
         sorted_files = sort_by_name(all_files)
-        
+
         # Insert sorted files into the image list
         for file_path in sorted_files:
             file_name = os.path.basename(file_path)
@@ -232,6 +254,12 @@ class Captioner:
             image = Image.open(file_path)
             original_width, original_height = image.size
             aspect_ratio = original_width / original_height
+            from fractions import Fraction
+            # Calculate the aspect ratio as a fraction
+            aspect_ratio_fraction = Fraction(original_width, original_height)
+            # Find the smallest fraction representation
+            aspect_ratio_str = f"{aspect_ratio_fraction.numerator}:{aspect_ratio_fraction.denominator}"
+
             new_width, new_height = max_size
             if original_width > original_height:
                 new_height = int(new_width / aspect_ratio)
@@ -248,6 +276,11 @@ class Captioner:
             self.image_label.config(image=image)
             self.image_label.image = image
             self.image_label.config(borderwidth=5, relief="groove")
+
+            # Update the resolution and aspect ratio label
+            resolution_text = f"{original_width}x{original_height} ({aspect_ratio_str})"
+            self.resolution_label.config(text=resolution_text)
+
             description_file = str(self.current_image_path).rsplit(".", 1)[0] + ".txt"
             if os.path.isfile(description_file):
                 with open(description_file, "r") as file:
@@ -255,7 +288,7 @@ class Captioner:
                     self.text_entry.insert(1.0, description)
             else:
                 self.text_entry.delete(1.0, "end")
-            self.root.title(f"Yofardev Captioner - {self.current_image}")
+            self.root.title(f"Yofardev Captioner - {self.current_image_path}")
         except Exception as e:
             print(f"Error loading image: {e}")
             messagebox.showinfo("Error", f"There was an error loading the image: {e}")

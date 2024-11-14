@@ -2,6 +2,8 @@ models/
 session.json
 .DS_Store
 venv/
+dist/
+build/
 
 # Ignore Python bytecode files
 __pycache__/
