@@ -116,16 +116,21 @@ class ThumbnailListbox(tk.Frame):
 
     def _on_select(self, index):
         if self.selected_item:
-            self.selected_item.configure(bg="gray25")
-            self.selected_item.text_label.configure(bg='gray25', fg='white') 
+            try:
+                self.selected_item.configure(bg="gray25")
+                self.selected_item.text_label.configure(bg='gray25', fg='white')
+            except tk.TclError:
+                # Ignore the error if the item has been destroyed
+                pass
 
-        self.selected_index = index
-        self.selected_item = self.items[index]
-        self.selected_item.configure(bg="lavender blush")
-        self.selected_item.text_label.configure(bg='lavender blush', fg='black') 
+        if 0 <= index < len(self.items):
+            self.selected_index = index
+            self.selected_item = self.items[index]
+            self.selected_item.configure(bg="lavender blush")
+            self.selected_item.text_label.configure(bg='lavender blush', fg='black')
 
-        # Generate virtual event
-        self.event_generate("<<ListboxSelect>>")
+            # Generate virtual event
+            self.event_generate("<<ListboxSelect>>")
 
     def curselection(self):
         return (self.selected_index,) if self.selected_index is not None else ()

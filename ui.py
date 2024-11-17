@@ -10,6 +10,7 @@ from session_file import load_session, save_session
 from thumbnail import ThumbnailListbox
 from utils import save_caption_to_file, sort_by_name, sort_files
 from vision_service import on_run_pressed
+import settings
 
 
 class Captioner:
@@ -33,6 +34,7 @@ class Captioner:
         self.setup_image_display()
         self.setup_text_entry()
         self.setup_control_frame()
+        self.setup_settings_icon()
         self.bind_events()
 
     def center_window(self):
@@ -86,6 +88,24 @@ class Captioner:
         # Enable the undo mechanism
         self.text_entry.config(undo=True, autoseparators=True, maxundo=-1)
 
+    def setup_settings_icon(self):
+        # Create a text button for settings
+        self.settings_button = tk.Button(
+            self.root,
+            text="API Keys",
+            command=self.open_settings,
+            bd=0,
+            highlightthickness=0,
+            bg="gray25",
+            fg="black",
+            font=("Arial", 10, "bold")
+        )
+        self.settings_button.place(relx=1.0, rely=0.0, x=-10, y=10, anchor=tk.NE)
+
+    def open_settings(self):
+        settings.open_settings(self)
+
+
     def undo_text(self, event):
         try:
             self.text_entry.edit_undo()
@@ -135,6 +155,9 @@ class Captioner:
             "Florence2",
             "GPT4o",
             "Pixtral",
+            "Gemini 1.5 Flash",
+            "Qwen2 72B",
+            
         ]
         self.model_dropdown = tk.OptionMenu(
             self.bottom_row_frame, self.selected_model, *models
@@ -255,10 +278,13 @@ class Captioner:
             original_width, original_height = image.size
             aspect_ratio = original_width / original_height
             from fractions import Fraction
+
             # Calculate the aspect ratio as a fraction
             aspect_ratio_fraction = Fraction(original_width, original_height)
             # Find the smallest fraction representation
-            aspect_ratio_str = f"{aspect_ratio_fraction.numerator}:{aspect_ratio_fraction.denominator}"
+            aspect_ratio_str = (
+                f"{aspect_ratio_fraction.numerator}:{aspect_ratio_fraction.denominator}"
+            )
 
             new_width, new_height = max_size
             if original_width > original_height:

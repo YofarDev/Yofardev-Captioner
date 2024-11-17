@@ -1,7 +1,6 @@
 from florence2 import describe_image as describe_image_florence2
-from gpt4o import describe_image as describe_image_gpt4o
 from pixtral import describe_image as describe_image_pixtral
-from gemini import describe_image as describe_image_gemini
+from open_ai import describe_image as describe_image
 import time
 from session_file import save_session
 from utils import (
@@ -17,9 +16,11 @@ def get_caption(model, image_path, trigger_phrase):
         elif model == "Pixtral":
             caption = describe_image_pixtral(image_path, trigger_phrase)
         elif model == "GPT4o":
-            caption = describe_image_gpt4o(image_path, trigger_phrase)
-        elif model == "Gemini":
-            caption = describe_image_gemini(image_path, trigger_phrase)
+            caption = describe_image(image_path, trigger_phrase, "https://models.inference.ai.azure.com", "gpt-4o", "GITHUB_API_KEY")
+        elif model == "Qwen2 72B":
+            caption = describe_image(image_path, trigger_phrase, "https://openrouter.ai/api/v1", "qwen/qwen-2-vl-72b-instruct", "OPENROUTER_API_KEY")
+        elif model == "Gemini 1.5 Flash":
+            caption = describe_image(image_path, trigger_phrase, "https://generativelanguage.googleapis.com/v1beta/", "gemini-1.5-flash", "GEMINI_API_KEY")
         print(caption)
         return caption
     except Exception as e:
