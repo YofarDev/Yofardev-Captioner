@@ -4,6 +4,8 @@ session.json
 venv/
 dist/
 build/
+keys.json
+main.spec
 
 # Ignore Python bytecode files
 __pycache__/
