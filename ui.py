@@ -198,7 +198,7 @@ class Captioner:
             self.caption_mode.get(),
             model,
             file_paths,
-            self.image_list.curselection()[0],
+            self.index,
             self.trigger_entry.get(),
         )
         self.text_entry.delete(1.0, "end")
