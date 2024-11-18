@@ -9,7 +9,7 @@ def describe_image(image_path, trigger_phrase):
     load_dotenv()
     data_url = local_image_to_data_url(image_path)
     api_key = os.environ["MISTRAL_API_KEY"]
-    model = "pixtral-12b-2409"
+    model = "pixtral-large-latest"
     client = Mistral(api_key=api_key)
     prompt = "Reply with a paragraph describing this image and nothing else."
     if trigger_phrase != "":
