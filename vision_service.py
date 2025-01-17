@@ -19,8 +19,8 @@ def get_caption(model, image_path, trigger_phrase):
             caption = describe_image(image_path, trigger_phrase, "https://models.inference.ai.azure.com", "gpt-4o", "GITHUB_API_KEY")
         elif model == "Qwen2 72B":
             caption = describe_image(image_path, trigger_phrase, "https://openrouter.ai/api/v1", "qwen/qwen-2-vl-72b-instruct", "OPENROUTER_API_KEY")
-        elif model == "Gemini 1.5 Flash":
-            caption = describe_image(image_path, trigger_phrase, "https://generativelanguage.googleapis.com/v1beta/", "gemini-1.5-flash", "GEMINI_API_KEY")
+        elif model == "Gemini 2.0 Flash":
+            caption = describe_image(image_path, trigger_phrase, "https://generativelanguage.googleapis.com/v1beta/", "gemini-2.0-flash-exp", "GEMINI_API_KEY")
         print(caption)
         return caption
     except Exception as e:

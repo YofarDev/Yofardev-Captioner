@@ -41,7 +41,7 @@ class Captioner:
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         width = int(screen_width / 1.5)
-        height = int(screen_height / 1.5)
+        height = int(screen_height / 1.2)
         x = (screen_width // 2) - (width // 2)
         y = (screen_height // 2) - (height // 2)
         self.root.geometry("%dx%d+%d+%d" % (width, height, x, y))
@@ -82,8 +82,13 @@ class Captioner:
         self.resolution_label.pack(side="top", anchor="center", pady=5)
 
     def setup_text_entry(self):
-        self.text_entry = tk.Text(self.root, height=6, width=85, wrap="word")
-        self.text_entry.config(borderwidth=5, relief="groove")
+        self.text_entry = tk.Text(self.root, height=16, width=85, wrap="word")
+        self.text_entry.config(borderwidth=2, relief="groove")
+        # Set the font and font size
+        self.text_entry.config(font=("Verdana", 18))  # Change "Helvetica" and 12 to your desired font and size
+        self.text_entry.config(padx=10, pady=10)  # Adjust the padding values as needed
+
+        
         self.text_entry.pack(side="bottom", fill="both")
         # Enable the undo mechanism
         self.text_entry.config(undo=True, autoseparators=True, maxundo=-1)
@@ -155,7 +160,7 @@ class Captioner:
             "Florence2",
             "GPT4o",
             "Pixtral",
-            "Gemini 1.5 Flash",
+            "Gemini 2.0 Flash",
             "Qwen2 72B",
             
         ]
