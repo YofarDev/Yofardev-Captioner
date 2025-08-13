@@ -4,15 +4,14 @@ from dotenv import load_dotenv
 from utils import local_image_to_data_url
 
 
-def describe_image(image_path, trigger_phrase, url, model, api_key_name):
+def describe_image(image_path, trigger_phrase, url, model, api_key_name, prompt):
     load_dotenv()
     client = OpenAI(
         base_url=url,
         api_key=os.getenv(api_key_name),
     )
-    prompt = "Describe this image."
     if trigger_phrase != "":
-        prompt =f"{prompt} Start the description with the following phrase: '{trigger_phrase}'"
+        prompt =f"{prompt} Start the description with the following phrase: '{trigger_phrase} style image of'"
     data_url = local_image_to_data_url(image_path)
     response = client.chat.completions.create(
         messages=[

@@ -9,18 +9,18 @@ from utils import (
 )
 
 
-def get_caption(model, image_path, trigger_phrase):
+def get_caption(model, image_path, trigger_phrase, prompt):
     try:
         if model == "Florence2":
-            caption = describe_image_florence2(image_path, trigger_phrase)
+            caption = describe_image_florence2(image_path, trigger_phrase, prompt)
         elif model == "Pixtral":
-            caption = describe_image_pixtral(image_path, trigger_phrase)
+            caption = describe_image_pixtral(image_path, trigger_phrase, prompt)
         elif model == "GPT4o":
-            caption = describe_image(image_path, trigger_phrase, "https://models.inference.ai.azure.com", "gpt-4o", "GITHUB_API_KEY")
-        elif model == "Qwen2 72B":
-            caption = describe_image(image_path, trigger_phrase, "https://openrouter.ai/api/v1", "qwen/qwen-2-vl-72b-instruct", "OPENROUTER_API_KEY")
-        elif model == "Gemini 2.0 Flash":
-            caption = describe_image(image_path, trigger_phrase, "https://generativelanguage.googleapis.com/v1beta/", "gemini-2.0-flash-exp", "GEMINI_API_KEY")
+            caption = describe_image(image_path, trigger_phrase, "https://models.inference.ai.azure.com", "gpt-4o", "GITHUB_API_KEY", prompt)
+        elif model == "Qwen2.5 72B":
+            caption = describe_image(image_path, trigger_phrase, "https://openrouter.ai/api/v1", "qwen/qwen2.5-vl-72b-instruct:free", "OPENROUTER_API_KEY", prompt)
+        elif model == "Gemini 2.5 Flash":
+            caption = describe_image(image_path, trigger_phrase, "https://generativelanguage.googleapis.com/v1beta/", "gemini-2.5-flash", "GEMINI_API_KEY", prompt)
         print(caption)
         return caption
     except Exception as e:
@@ -43,17 +43,17 @@ def debounce(self):
     save_session(self)
     
 
-def on_run_pressed(self, caption_mode, model, image_paths, index, trigger_phrase):
+def on_run_pressed(self, caption_mode, model, image_paths, index, trigger_phrase, prompt):
     caption = ''
     if caption_mode == "single":
-        caption = get_caption(model, image_paths[index], trigger_phrase)
+        caption = get_caption(model, image_paths[index], trigger_phrase, prompt)
         save_caption(caption, image_paths[index])
     else:
         for i, img in enumerate(image_paths):
             if load_file_as_string(img.rsplit(".", 1)[0] + ".txt") == "":
-                if model == "GPT4o":
+                if model == "GPT4o" or model == "Qwen2 72B" or model == "Gemini 2.5 Flash":
                     debounce(self)
-                c = get_caption(model, img, trigger_phrase)
+                c = get_caption(model, img, trigger_phrase, prompt)
                 save_caption(c, img)
                 if i == index:
                     caption = c

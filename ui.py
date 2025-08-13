@@ -147,6 +147,15 @@ class Captioner:
                 side="left", padx=5
             )
 
+        self.setup_prompt_entry()
+
+    def setup_prompt_entry(self):
+        tk.Label(self.top_row_frame, text="Prompt:").pack(side="left", padx=5)
+        self.prompt_entry = Entry(self.top_row_frame, width=100)
+        self.prompt_entry.pack(side="left", padx=5)
+        self.prompt_entry.insert(0, "Make a simple description of the composition and subject(s) of this image without describing the style nor the atmosphere. Limit it to 2-3 sentences max.")
+
+
     def setup_trigger_entry(self):
         tk.Label(self.bottom_row_frame, text="Trigger Phrase:").pack(
             side="left", padx=5
@@ -160,8 +169,8 @@ class Captioner:
             "Florence2",
             "GPT4o",
             "Pixtral",
-            "Gemini 2.0 Flash",
-            "Qwen2 72B",
+            "Gemini 2.5 Flash",
+            "Qwen2.5 72B",
             
         ]
         self.model_dropdown = tk.OptionMenu(
@@ -198,6 +207,7 @@ class Captioner:
     def run_model(self):
         model = self.selected_model.get()
         file_paths = list(self.file_map.values())
+        print(self.index)
         caption = on_run_pressed(
             self,
             self.caption_mode.get(),
@@ -205,6 +215,7 @@ class Captioner:
             file_paths,
             self.index,
             self.trigger_entry.get(),
+            self.prompt_entry.get(),
         )
         self.text_entry.delete(1.0, "end")
         self.text_entry.insert(1.0, caption)

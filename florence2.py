@@ -75,11 +75,13 @@ def run_model(
     return clean_results[0]
 
 
-def describe_image(image_path, trigger_phrase):
+def describe_image(image_path, trigger_phrase, prompt):
     model, processor = download_and_load_model()
     vanilla_caption = run_model(
         image_path, model, processor, task="caption", detail_mode=3
     )
+    # The florence2 model doesn't accept a prompt, but we have to make sure an empty prompt is not passed to the `rewrite_caption_with_trigger_phrase` function
+    print("Florence2 doesn't use a prompt. The prompt will be ignored.")
     if trigger_phrase != "":
         caption = rewrite_caption_with_trigger_phrase(vanilla_caption, trigger_phrase)
     else:
