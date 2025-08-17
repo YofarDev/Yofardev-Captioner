@@ -14,7 +14,7 @@ def rename_files_to_numbers(folder_path):
         new_name = f"{new_number}{Path(old_name).suffix}"
         # Check if the new name already exists
         if os.path.exists(os.path.join(folder_path, new_name)):
-            return
+            continue
         new_names[old_name] = new_name
     # Second pass: perform the renaming
     for old_name, new_name in new_names.items():

@@ -153,7 +153,7 @@ class Captioner:
         tk.Label(self.top_row_frame, text="Prompt:").pack(side="left", padx=5)
         self.prompt_entry = Entry(self.top_row_frame, width=100)
         self.prompt_entry.pack(side="left", padx=5)
-        self.prompt_entry.insert(0, "Make a simple description of the composition and subject(s) of this image without describing the style nor the atmosphere. Limit it to 2-3 sentences max.")
+        self.prompt_entry.insert(0, "Make a description of the composition and subject(s) of this image (including the camera angle if needed), without describing the style or atmosphere.")
 
 
     def setup_trigger_entry(self):
