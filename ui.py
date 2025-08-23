@@ -21,7 +21,7 @@ class Captioner:
         self.current_image = ""
         self.current_image_path = ""
         self.caption_mode = tk.StringVar(value="single")
-        self.selected_model = tk.StringVar(value="Florence2")
+        self.selected_model = tk.StringVar(value="Qwen2.5 72B")
         self.gpt_last_used = None
         self.index = 0
         self.prompt_text = "Describe this image as one paragraph, without mentionning the style nor the atmosphere."
@@ -183,12 +183,12 @@ class Captioner:
         tk.Label(self.bottom_row_frame, text="Model:").pack(side="left", padx=5)
         models = [
             "Qwen2.5 72B",
-            "Florence2",
             "GPT-4.1",
             "Pixtral",
             "Gemini 2.5 Flash",
             "Gemini 2.5 Pro",
             "Grok",
+             "Florence2",
         ]
         self.model_dropdown = tk.OptionMenu(
             self.bottom_row_frame, self.selected_model, *models
