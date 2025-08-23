@@ -188,7 +188,7 @@ class Captioner:
             "Gemini 2.5 Flash",
             "Gemini 2.5 Pro",
             "Grok",
-             "Florence2",
+            "Florence2",
         ]
         self.model_dropdown = tk.OptionMenu(
             self.bottom_row_frame, self.selected_model, *models
@@ -342,9 +342,19 @@ class Captioner:
                 self.image_label.image = image
                 self.image_label.config(borderwidth=5, relief="groove")
 
-                # Update the resolution and aspect ratio label
+                # Get file size
+                file_size_bytes = os.path.getsize(file_path)
+                file_size_kb = file_size_bytes / 1024
+                file_size_mb = file_size_kb / 1024
+
+                if file_size_mb >= 1:
+                    file_size_str = f"{file_size_mb:.2f} MB"
+                else:
+                    file_size_str = f"{file_size_kb:.2f} KB"
+
+                # Update the resolution, aspect ratio, and file size label
                 resolution_text = (
-                    f"{original_width}x{original_height} ({aspect_ratio_str})"
+                    f"{original_width}x{original_height} ({aspect_ratio_str}) - {file_size_str}"
                 )
                 self.resolution_label.config(text=resolution_text)
 

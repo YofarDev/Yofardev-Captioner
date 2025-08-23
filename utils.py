@@ -8,7 +8,7 @@ from mimetypes import guess_type
 from PIL import Image
 
 # Define the maximum image size in bytes (10MB)
-MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
+MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
 
 def extract_first_sentence(text):
     match = re.match(r"([^.!?]*[.!?])", text)
@@ -80,8 +80,10 @@ def load_images_from_folder(folder_path):
     return file_map
 
 def save_caption_to_file(caption, file_path):
+    if caption is None:
+        caption = "" # Ensure caption is a string, even if None is passed
     with open(file_path, "w") as file:
-                file.write(caption)
+        file.write(caption)
     print(f"Captions saved successfully at {file_path}")
     
     

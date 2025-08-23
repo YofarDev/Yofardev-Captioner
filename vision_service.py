@@ -13,7 +13,7 @@ def get_caption(model, image_path, trigger_phrase, prompt):
             caption = describe_image_florence2(image_path, trigger_phrase, prompt)
         elif model == "Pixtral":
             caption = describe_image_pixtral(image_path, trigger_phrase, prompt)
-        elif model == "GPT4o":
+        elif model == "GPT-4.1":
             caption = describe_image(
                 image_path,
                 trigger_phrase,
@@ -62,7 +62,7 @@ def get_caption(model, image_path, trigger_phrase, prompt):
         return caption
     except Exception as e:
         print(f"Error getting caption: {e}")
-        return ""
+        return None # Return None on error to be handled by calling function
 
 
 def save_caption(caption, image_path):
@@ -83,19 +83,21 @@ def debounce(self):
 def on_run_pressed(
     self, caption_mode, model, image_paths, index, trigger_phrase, prompt
 ):
-    caption = ""
+    caption = None
     if caption_mode == "single":
         caption = get_caption(model, image_paths[0], trigger_phrase, prompt)
-        save_caption(caption, image_paths[0])
+        if caption:
+            save_caption(caption, image_paths[0])
     else:
         for i, img in enumerate(image_paths):
             # Check if the caption file is empty
             if load_file_as_string(img.rsplit(".", 1)[0] + ".txt") == "":
-                if model in ["GPT4o", "Qwen2 72B", "Gemini 2.5 Flash"]:
+                if model not in ["Florence2"]:
                     debounce(self)
                 c = get_caption(model, img, trigger_phrase, prompt)
-                save_caption(c, img)
+                if c:
+                    save_caption(c, img)
                 # If the current image is the one selected in the UI, update the caption
                 if i == index:
                     caption = c
-    return caption
+    return caption if caption is not None else ""
