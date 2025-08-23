@@ -1,7 +1,7 @@
 import glob
 import os
 import tkinter as tk
-from tkinter import Entry, filedialog, messagebox
+from tkinter import filedialog, messagebox
 
 from PIL import Image, ImageTk
 
@@ -24,6 +24,7 @@ class Captioner:
         self.selected_model = tk.StringVar(value="Florence2")
         self.gpt_last_used = None
         self.index = 0
+        self.prompt_text = "Describe this image as one paragraph, without mentionning the style nor the atmosphere."
         self.setup_ui()
         load_session(self)
 
@@ -58,7 +59,7 @@ class Captioner:
         self.control_frame.pack(side="bottom", fill="x", pady=10)
 
     def setup_image_list(self):
-        self.image_list = ThumbnailListbox(self.frame_list)
+        self.image_list = ThumbnailListbox(self.frame_list, self)
         self.image_list.pack(side="left", fill="both", expand=True)
 
     def setup_scrollbars(self):
@@ -150,27 +151,41 @@ class Captioner:
         self.setup_prompt_entry()
 
     def setup_prompt_entry(self):
-        tk.Label(self.top_row_frame, text="Prompt:").pack(side="left", padx=5)
-        self.prompt_entry = Entry(self.top_row_frame, width=100)
-        self.prompt_entry.pack(side="left", padx=5)
-        self.prompt_entry.insert(0, "Make a description of the composition and subject(s) of this image (including the camera angle if needed), without describing the style or atmosphere.")
+        tk.Button(self.top_row_frame, text="Edit Captioner Prompt", command=self.open_prompt_window).pack(side="left", padx=5)
 
+    def open_prompt_window(self):
+        prompt_window = tk.Toplevel(self.root)
+        prompt_window.title("Edit Captioner Prompt")
+        prompt_window.geometry("600x400")
+
+        prompt_text = tk.Text(prompt_window, wrap="word", font=("Verdana", 14))
+        prompt_text.pack(expand=True, fill="both", padx=10, pady=10)
+        prompt_text.insert(1.0, self.prompt_text)
+
+        def save_prompt():
+            self.prompt_text = prompt_text.get(1.0, "end-1c")
+            prompt_window.destroy()
+
+        save_button = tk.Button(prompt_window, text="Save", command=save_prompt)
+        save_button.pack(pady=10)
 
     def setup_trigger_entry(self):
         tk.Label(self.bottom_row_frame, text="Trigger Phrase:").pack(
             side="left", padx=5
         )
-        self.trigger_entry = Entry(self.bottom_row_frame, width=20)
+        self.trigger_entry = tk.Entry(self.bottom_row_frame, width=20)
         self.trigger_entry.pack(side="left", padx=5)
 
     def setup_model_dropdown(self):
         tk.Label(self.bottom_row_frame, text="Model:").pack(side="left", padx=5)
         models = [
             "Florence2",
-            "GPT4o",
+            "GPT-4.1",
             "Pixtral",
             "Gemini 2.5 Flash",
+            "Gemini 2.5 Pro",
             "Qwen2.5 72B",
+            "Grok",
             
         ]
         self.model_dropdown = tk.OptionMenu(
@@ -206,16 +221,23 @@ class Captioner:
 
     def run_model(self):
         model = self.selected_model.get()
-        file_paths = list(self.file_map.values())
-        print(self.index)
+        caption_mode = self.caption_mode.get()
+        
+        if caption_mode == "single":
+            file_paths = [self.current_image_path]
+            index = 0
+        else:
+            file_paths = list(self.file_map.values())
+            index = self.index
+
         caption = on_run_pressed(
             self,
-            self.caption_mode.get(),
+            caption_mode,
             model,
             file_paths,
-            self.index,
+            index,
             self.trigger_entry.get(),
-            self.prompt_entry.get(),
+            self.prompt_text,
         )
         self.text_entry.delete(1.0, "end")
         self.text_entry.insert(1.0, caption)
@@ -233,6 +255,7 @@ class Captioner:
     def load_images_from_folder(self, folder_path):
         for item in self.image_list.items:
             item.destroy()
+        self.image_list.items = []
         self.file_map = {}
         file_types = ("*.bmp", "*.jpg", "*.jpeg", "*.png")
         all_files = []
@@ -248,7 +271,8 @@ class Captioner:
         for file_path in sorted_files:
             file_name = os.path.basename(file_path)
             self.file_map[file_name] = file_path
-            self.image_list.insert(file_path, file_name)
+            item = self.image_list.insert(file_path, file_name)
+            self.check_and_color_item(item, file_path)
 
     def open_images(self):
         try:
@@ -261,11 +285,13 @@ class Captioner:
                 self.current_folder = os.path.dirname(file_paths[0])
                 for item in self.image_list.items:
                     item.destroy()
+                self.image_list.items = []
                 self.file_map = {}
                 for file_path in file_paths:
                     file_name = os.path.basename(file_path)
                     self.file_map[file_name] = file_path
-                    self.image_list.insert(file_path, file_name)
+                    item = self.image_list.insert(file_path, file_name)
+                    self.check_and_color_item(item, file_path)
                 save_session(self)
         except Exception as e:
             print(f"Error opening images: {e}")
@@ -289,48 +315,41 @@ class Captioner:
             self.current_image_path = file_path
             screen_width = self.root.winfo_screenwidth()
             screen_height = self.root.winfo_screenheight()
-            max_size = int(screen_width / 2), int(screen_height / 2.1)
-            image = Image.open(file_path)
-            original_width, original_height = image.size
-            aspect_ratio = original_width / original_height
-            from fractions import Fraction
+            max_size = (int(screen_width / 2.5), int(screen_height / 1.5))
 
-            # Calculate the aspect ratio as a fraction
-            aspect_ratio_fraction = Fraction(original_width, original_height)
-            # Find the smallest fraction representation
-            aspect_ratio_str = (
-                f"{aspect_ratio_fraction.numerator}:{aspect_ratio_fraction.denominator}"
-            )
+            with Image.open(file_path) as image:
+                original_width, original_height = image.size
+                aspect_ratio = original_width / original_height
+                aspect_ratio_str = f"{aspect_ratio:.2f}"
+                new_width, new_height = original_width, original_height
+                if original_width > original_height:
+                    new_height = int(new_width / aspect_ratio)
+                else:
+                    new_width = int(new_height * aspect_ratio)
+                if new_width > max_size[0]:
+                    new_width = max_size[0]
+                    new_height = int(new_width / aspect_ratio)
+                if new_height > max_size[1]:
+                    new_height = max_size[1]
+                    new_width = int(new_height * aspect_ratio)
+                image = image.resize((new_width, new_height), Image.LANCZOS)
+                image = ImageTk.PhotoImage(image)
+                self.image_label.config(image=image)
+                self.image_label.image = image
+                self.image_label.config(borderwidth=5, relief="groove")
 
-            new_width, new_height = max_size
-            if original_width > original_height:
-                new_height = int(new_width / aspect_ratio)
-            else:
-                new_width = int(new_height * aspect_ratio)
-            if new_width > max_size[0]:
-                new_width = max_size[0]
-                new_height = int(new_width / aspect_ratio)
-            if new_height > max_size[1]:
-                new_height = max_size[1]
-                new_width = int(new_height * aspect_ratio)
-            image = image.resize((new_width, new_height), Image.LANCZOS)
-            image = ImageTk.PhotoImage(image)
-            self.image_label.config(image=image)
-            self.image_label.image = image
-            self.image_label.config(borderwidth=5, relief="groove")
+                # Update the resolution and aspect ratio label
+                resolution_text = f"{original_width}x{original_height} ({aspect_ratio_str})"
+                self.resolution_label.config(text=resolution_text)
 
-            # Update the resolution and aspect ratio label
-            resolution_text = f"{original_width}x{original_height} ({aspect_ratio_str})"
-            self.resolution_label.config(text=resolution_text)
-
-            description_file = str(self.current_image_path).rsplit(".", 1)[0] + ".txt"
-            if os.path.isfile(description_file):
-                with open(description_file, "r") as file:
-                    description = file.read()
-                    self.text_entry.insert(1.0, description)
-            else:
-                self.text_entry.delete(1.0, "end")
-            self.root.title(f"Yofardev Captioner - {self.current_image_path}")
+                description_file = str(self.current_image_path).rsplit(".", 1)[0] + ".txt"
+                if os.path.isfile(description_file):
+                    with open(description_file, "r") as file:
+                        description = file.read()
+                        self.text_entry.insert(1.0, description)
+                else:
+                    self.text_entry.delete(1.0, "end")
+                self.root.title(f"Yofardev Captioner - {self.current_image_path}")
         except Exception as e:
             print(f"Error loading image: {e}")
             messagebox.showinfo("Error", f"There was an error loading the image: {e}")
@@ -342,6 +361,9 @@ class Captioner:
                 return
             description_file = str(self.current_image_path).rsplit(".", 1)[0] + ".txt"
             save_caption_to_file(description, description_file)
+            # After saving, check and color the item again
+            item = self.image_list.items[self.index]
+            self.check_and_color_item(item, self.current_image_path)
         except Exception as e:
             messagebox.showinfo(
                 "Error", f"There was an error while saving the captions: {e}"
@@ -349,6 +371,13 @@ class Captioner:
 
     def on_trigger_change(self, event):
         save_session(self)
+
+    def check_and_color_item(self, item, file_path):
+        caption_file = os.path.splitext(file_path)[0] + ".txt"
+        if not os.path.exists(caption_file) or os.path.getsize(caption_file) == 0:
+            item.set_bg_color("gray15", fg="white")
+        else:
+            item.set_bg_color("gray25", fg="white")
 
 
 if __name__ == "__main__":

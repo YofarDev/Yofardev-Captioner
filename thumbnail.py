@@ -38,6 +38,10 @@ class ThumbnailItem(tk.Frame):
 
     
 
+    def set_bg_color(self, color, fg="white"):
+        self.configure(bg=color)
+        self.text_label.configure(bg=color, fg=fg)
+
     def _resize_to_square(self, image, size):
         """Resize image to a square aspect ratio using BoxFit.cover effect"""
         width, height = image.size
@@ -57,8 +61,9 @@ class ThumbnailItem(tk.Frame):
     
 
 class ThumbnailListbox(tk.Frame):
-    def __init__(self, parent, width=300):
+    def __init__(self, parent, captioner, width=300):
         super().__init__(parent)
+        self.captioner = captioner
 
         # Create canvas and scrollbar
         self.canvas = tk.Canvas(self, width=width)
@@ -92,7 +97,7 @@ class ThumbnailListbox(tk.Frame):
         item.pack(fill="x", padx=2, pady=1)
         item.bind("<Button-1>", lambda e, idx=len(self.items): self._on_select(idx))
         self.items.append(item)
-        return len(self.items) - 1
+        return item
 
     def delete(self, first, last=None):
         # Convert string indices to integers
@@ -117,10 +122,13 @@ class ThumbnailListbox(tk.Frame):
     def _on_select(self, index):
         if self.selected_item:
             try:
-                self.selected_item.configure(bg="gray25")
-                self.selected_item.text_label.configure(bg='gray25', fg='white')
-            except tk.TclError:
-                # Ignore the error if the item has been destroyed
+                # Get the file path of the deselected item
+                file_name = self.get(self.selected_index)
+                file_path = self.captioner.file_map[file_name]
+                # Check and restore the correct background color
+                self.captioner.check_and_color_item(self.selected_item, file_path)
+            except (tk.TclError, KeyError):
+                # Ignore the error if the item has been destroyed or not in file_map
                 pass
 
         if 0 <= index < len(self.items):
