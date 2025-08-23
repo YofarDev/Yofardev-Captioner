@@ -5,12 +5,12 @@ from tkinter import filedialog, messagebox
 
 from PIL import Image, ImageTk
 
+import settings
 from rename_images import rename_files_to_numbers
 from session_file import load_session, save_session
 from thumbnail import ThumbnailListbox
 from utils import save_caption_to_file, sort_by_name, sort_files
 from vision_service import on_run_pressed
-import settings
 
 
 class Captioner:
@@ -76,7 +76,6 @@ class Captioner:
     def setup_image_display(self):
         self.image_label = tk.Label(self.root)
         self.image_label.pack(side="top", anchor="center")
-        self.image_label.pack_propagate(False)
 
         # Add a label to display resolution and aspect ratio
         self.resolution_label = tk.Label(self.root, text="", font=("Arial", 10))
@@ -86,10 +85,11 @@ class Captioner:
         self.text_entry = tk.Text(self.root, height=16, width=85, wrap="word")
         self.text_entry.config(borderwidth=2, relief="groove")
         # Set the font and font size
-        self.text_entry.config(font=("Verdana", 18))  # Change "Helvetica" and 12 to your desired font and size
+        self.text_entry.config(
+            font=("Verdana", 18)
+        )  # Change "Helvetica" and 12 to your desired font and size
         self.text_entry.config(padx=10, pady=10)  # Adjust the padding values as needed
 
-        
         self.text_entry.pack(side="bottom", fill="both")
         # Enable the undo mechanism
         self.text_entry.config(undo=True, autoseparators=True, maxundo=-1)
@@ -104,13 +104,12 @@ class Captioner:
             highlightthickness=0,
             bg="gray25",
             fg="black",
-            font=("Arial", 10, "bold")
+            font=("Arial", 10, "bold"),
         )
         self.settings_button.place(relx=1.0, rely=0.0, x=-10, y=10, anchor=tk.NE)
 
     def open_settings(self):
         settings.open_settings(self)
-
 
     def undo_text(self, event):
         try:
@@ -151,7 +150,11 @@ class Captioner:
         self.setup_prompt_entry()
 
     def setup_prompt_entry(self):
-        tk.Button(self.top_row_frame, text="Edit Captioner Prompt", command=self.open_prompt_window).pack(side="left", padx=5)
+        tk.Button(
+            self.top_row_frame,
+            text="Edit Captioner Prompt",
+            command=self.open_prompt_window,
+        ).pack(side="left", padx=5)
 
     def open_prompt_window(self):
         prompt_window = tk.Toplevel(self.root)
@@ -179,14 +182,13 @@ class Captioner:
     def setup_model_dropdown(self):
         tk.Label(self.bottom_row_frame, text="Model:").pack(side="left", padx=5)
         models = [
+            "Qwen2.5 72B",
             "Florence2",
             "GPT-4.1",
             "Pixtral",
             "Gemini 2.5 Flash",
             "Gemini 2.5 Pro",
-            "Qwen2.5 72B",
             "Grok",
-            
         ]
         self.model_dropdown = tk.OptionMenu(
             self.bottom_row_frame, self.selected_model, *models
@@ -222,7 +224,7 @@ class Captioner:
     def run_model(self):
         model = self.selected_model.get()
         caption_mode = self.caption_mode.get()
-        
+
         if caption_mode == "single":
             file_paths = [self.current_image_path]
             index = 0
@@ -314,24 +316,26 @@ class Captioner:
             self.current_image = file_name
             self.current_image_path = file_path
             screen_width = self.root.winfo_screenwidth()
-            screen_height = self.root.winfo_screenheight()
-            max_size = (int(screen_width / 2.5), int(screen_height / 1.5))
+            max_height = 500  # Fixed height limit
+            max_size = (screen_width, max_height)
 
             with Image.open(file_path) as image:
                 original_width, original_height = image.size
                 aspect_ratio = original_width / original_height
                 aspect_ratio_str = f"{aspect_ratio:.2f}"
+
                 new_width, new_height = original_width, original_height
-                if original_width > original_height:
-                    new_height = int(new_width / aspect_ratio)
-                else:
+
+                # Scale down if image height is greater than max_height
+                if original_height > max_height:
+                    new_height = max_height
                     new_width = int(new_height * aspect_ratio)
-                if new_width > max_size[0]:
-                    new_width = max_size[0]
+
+                # If the new width exceeds the screen width, scale down proportionally
+                if new_width > screen_width:
+                    new_width = screen_width
                     new_height = int(new_width / aspect_ratio)
-                if new_height > max_size[1]:
-                    new_height = max_size[1]
-                    new_width = int(new_height * aspect_ratio)
+
                 image = image.resize((new_width, new_height), Image.LANCZOS)
                 image = ImageTk.PhotoImage(image)
                 self.image_label.config(image=image)
@@ -339,10 +343,14 @@ class Captioner:
                 self.image_label.config(borderwidth=5, relief="groove")
 
                 # Update the resolution and aspect ratio label
-                resolution_text = f"{original_width}x{original_height} ({aspect_ratio_str})"
+                resolution_text = (
+                    f"{original_width}x{original_height} ({aspect_ratio_str})"
+                )
                 self.resolution_label.config(text=resolution_text)
 
-                description_file = str(self.current_image_path).rsplit(".", 1)[0] + ".txt"
+                description_file = (
+                    str(self.current_image_path).rsplit(".", 1)[0] + ".txt"
+                )
                 if os.path.isfile(description_file):
                     with open(description_file, "r") as file:
                         description = file.read()
