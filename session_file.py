@@ -12,6 +12,7 @@ def save_session(self):
         "file_map": self.file_map,
         "selected_model": self.selected_model.get(),
         "gpt_last_used": self.gpt_last_used,
+        "prompt_text": self.prompt_text,
     }
     with open("session.json", "w") as f:
         json.dump(session_data, f)
@@ -30,6 +31,10 @@ def load_session(self):
         self.current_image = session_data.get("current_image", "")
         self.selected_model.set(session_data.get("selected_model", "Florence2"))
         self.gpt_last_used = session_data.get("gpt_last_used", None)
+        self.prompt_text = session_data.get(
+            "prompt_text",
+            "Describe this image as one paragraph, without mentionning the style nor the atmosphere.",
+        )
 
         if self.current_folder:
             self.load_images_from_folder(self.current_folder)

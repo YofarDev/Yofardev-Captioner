@@ -25,6 +25,7 @@ class Captioner:
         self.gpt_last_used = None
         self.index = 0
         self.prompt_text = "Describe this image as one paragraph, without mentionning the style nor the atmosphere."
+        self.prompt_window = None
         self.setup_ui()
         load_session(self)
 
@@ -157,20 +158,45 @@ class Captioner:
         ).pack(side="left", padx=5)
 
     def open_prompt_window(self):
-        prompt_window = tk.Toplevel(self.root)
-        prompt_window.title("Edit Captioner Prompt")
-        prompt_window.geometry("600x400")
+        if self.prompt_window is not None and self.prompt_window.winfo_exists():
+            self.prompt_window.focus()
+            return
 
-        prompt_text = tk.Text(prompt_window, wrap="word", font=("Verdana", 14))
-        prompt_text.pack(expand=True, fill="both", padx=10, pady=10)
-        prompt_text.insert(1.0, self.prompt_text)
+        self.prompt_window = tk.Toplevel(self.root)
+        self.prompt_window.title("Edit Captioner Prompt")
+        self.prompt_window.geometry("600x400")
 
         def save_prompt():
             self.prompt_text = prompt_text.get(1.0, "end-1c")
-            prompt_window.destroy()
+            save_session(self)
+            self.prompt_window.destroy()
 
-        save_button = tk.Button(prompt_window, text="Save", command=save_prompt)
-        save_button.pack(pady=10)
+        def set_default_prompt():
+            prompt_text.delete(1.0, "end")
+            prompt_text.insert(
+                1.0,
+                "Describe this image as one paragraph, without mentionning the style nor the atmosphere.",
+            )
+
+        button_frame = tk.Frame(self.prompt_window)
+        button_frame.pack(pady=10, side="top", fill="x")
+
+        save_button = tk.Button(button_frame, text="Save", command=save_prompt)
+        save_button.pack(side="left", padx=5)
+
+        default_button = tk.Button(
+            button_frame, text="Default", command=set_default_prompt
+        )
+        default_button.pack(side="left", padx=5)
+
+        close_button = tk.Button(
+            button_frame, text="Close", command=self.prompt_window.destroy
+        )
+        close_button.pack(side="right", padx=5)
+
+        prompt_text = tk.Text(self.prompt_window, wrap="word", font=("Verdana", 14))
+        prompt_text.pack(expand=True, fill="both", padx=10, pady=10)
+        prompt_text.insert(1.0, self.prompt_text)
 
     def setup_trigger_entry(self):
         tk.Label(self.bottom_row_frame, text="Trigger Phrase:").pack(
