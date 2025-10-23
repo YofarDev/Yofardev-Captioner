@@ -14,13 +14,13 @@ def save_session(self):
         "gpt_last_used": self.gpt_last_used,
         "prompt_text": self.prompt_text,
     }
-    with open("session.json", "w") as f:
+    with open(".session.json", "w") as f:
         json.dump(session_data, f)
 
 
 def load_session(self):
     try:
-        with open("session.json", "r") as f:
+        with open(".session.json", "r") as f:
             session_data = json.load(f)
         self.file_map = session_data.get("file_map", {})
         for file_name, file_path in self.file_map.items():

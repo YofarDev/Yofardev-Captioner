@@ -54,7 +54,7 @@ def get_caption(model, image_path, trigger_phrase, prompt):
                 image_path,
                 trigger_phrase,
                 "https://openrouter.ai/api/v1",
-                "x-ai/grok-2-vision-1212",
+                "x-ai/grok-4-fast:free",
                 "OPENROUTER_API_KEY",
                 prompt,
             )

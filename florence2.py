@@ -21,8 +21,11 @@ def fixed_get_imports(filename: str | os.PathLike) -> list[str]:
 
 # Function to download and load the Florence-2 model
 def download_and_load_model(model_name="microsoft/Florence-2-large"):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    # device = 'mps'
+    device = (
+        "cuda"
+        if torch.cuda.is_available()
+        else "mps" if torch.backends.mps.is_available() else "cpu"
+    )
     model_path = os.path.join("models", model_name.replace("/", "_"))
     if not os.path.exists(model_path):
         print(f"Downloading {model_name} model to: {model_path}")
@@ -48,7 +51,11 @@ def run_model(
     max_new_tokens=1024,
     detail_mode=3,
 ):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = (
+        "cuda"
+        if torch.cuda.is_available()
+        else "mps" if torch.backends.mps.is_available() else "cpu"
+    )
     prompts = {1: "<CAPTION>", 2: "<DETAILED_CAPTION>", 3: "<MORE_DETAILED_CAPTION>"}
     prompt = prompts.get(detail_mode, "<MORE_DETAILED_CAPTION>")
     inputs = {"input_ids": [], "pixel_values": []}

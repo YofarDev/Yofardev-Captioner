@@ -1,5 +1,5 @@
 models/
-session.json
+.session.json
 .DS_Store
 venv/
 dist/

@@ -139,8 +139,9 @@ class Captioner:
 
     def setup_first_row(self):
         buttons = [
-            ("Load Folder", self.open_folder),
-            ("Load Image(s)", self.open_images),
+            ("📂", self.open_folder),
+            ("📷", self.open_images),
+            ("🔄", self.refresh_images),
             ("Rename all images", self.rename_images),
         ]
         for text, command in buttons:
@@ -149,6 +150,10 @@ class Captioner:
             )
 
         self.setup_prompt_entry()
+
+    def refresh_images(self):
+        if self.current_folder:
+            self.load_images_from_folder(self.current_folder)
 
     def setup_prompt_entry(self):
         tk.Button(
@@ -198,13 +203,6 @@ class Captioner:
         prompt_text.pack(expand=True, fill="both", padx=10, pady=10)
         prompt_text.insert(1.0, self.prompt_text)
 
-    def setup_trigger_entry(self):
-        tk.Label(self.bottom_row_frame, text="Trigger Phrase:").pack(
-            side="left", padx=5
-        )
-        self.trigger_entry = tk.Entry(self.bottom_row_frame, width=20)
-        self.trigger_entry.pack(side="left", padx=5)
-
     def setup_model_dropdown(self):
         tk.Label(self.bottom_row_frame, text="Model:").pack(side="left", padx=5)
         models = [
@@ -222,7 +220,6 @@ class Captioner:
         self.model_dropdown.pack(side="left", padx=5)
 
     def setup_second_row(self):
-        self.setup_trigger_entry()
         self.setup_model_dropdown()
         tk.Button(self.bottom_row_frame, text="Run", command=self.run_model).pack(
             side="left", padx=5
@@ -243,7 +240,6 @@ class Captioner:
     def bind_events(self):
         self.image_list.bind("<<ListboxSelect>>", self.display_image)
         self.root.bind("<Control-s>", self.save_caption)
-        self.trigger_entry.bind("<KeyRelease>", self.on_trigger_change)
         self.text_entry.bind("<Control-z>", self.undo_text)
         self.text_entry.bind("<Control-y>", self.redo_text)
 
@@ -264,7 +260,7 @@ class Captioner:
             model,
             file_paths,
             index,
-            self.trigger_entry.get(),
+            "",  # Removed self.trigger_entry.get()
             self.prompt_text,
         )
         self.text_entry.delete(1.0, "end")
@@ -379,9 +375,7 @@ class Captioner:
                     file_size_str = f"{file_size_kb:.2f} KB"
 
                 # Update the resolution, aspect ratio, and file size label
-                resolution_text = (
-                    f"{original_width}x{original_height} ({aspect_ratio_str}) - {file_size_str}"
-                )
+                resolution_text = f"{original_width}x{original_height} ({aspect_ratio_str}) - {file_size_str}"
                 self.resolution_label.config(text=resolution_text)
 
                 description_file = (
@@ -412,9 +406,6 @@ class Captioner:
             messagebox.showinfo(
                 "Error", f"There was an error while saving the captions: {e}"
             )
-
-    def on_trigger_change(self, event):
-        save_session(self)
 
     def check_and_color_item(self, item, file_path):
         caption_file = os.path.splitext(file_path)[0] + ".txt"
