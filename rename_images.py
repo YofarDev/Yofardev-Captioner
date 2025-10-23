@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 def rename_files_to_numbers(folder_path):
-    image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
+    image_extensions = ('.jpg', '.jpeg', '.png', '.webp', '.JPG', '.JPEG', '.PNG', '.WEBP')
     
     # Get all image files and sort them naturally
     all_files_in_folder = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]

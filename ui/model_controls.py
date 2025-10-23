@@ -1,3 +1,5 @@
+import os
+import subprocess
 import tkinter as tk
 
 from vision_service import on_run_pressed
@@ -5,7 +7,7 @@ from vision_service import on_run_pressed
 
 class ModelControls:
     """Handles AI model selection and execution controls."""
-    
+
     def __init__(self, captioner):
         self.captioner = captioner
         self.caption_mode = tk.StringVar(value="single")
@@ -15,12 +17,12 @@ class ModelControls:
         self.top_row_frame = None
         self.bottom_row_frame = None
         self.model_dropdown = None
-    
+
     def setup_control_frame(self):
         """Setup the main control frame with two rows."""
         self.control_frame = tk.Frame(self.captioner.root)
         self.control_frame.pack(side="bottom", fill="x", pady=10)
-        
+
         # Create two separate frames for the rows
         self.top_row_frame = tk.Frame(self.control_frame)
         self.top_row_frame.pack(fill="x", pady=(0, 5))
@@ -37,8 +39,12 @@ class ModelControls:
             ("📂", self.captioner.image_manager.open_folder),
             ("📷", self.captioner.image_manager.open_images),
             ("🔄", self.captioner.image_manager.refresh_images),
-            ("Rename all images", self.captioner.image_manager.rename_images),
-            ("🔍 Search/Replace", self.captioner.search_replace_dialog.open_search_replace_window),
+            ("Rename all files", self.captioner.image_manager.rename_images),
+            (
+                "🔍 Search/Replace",
+                self.captioner.search_replace_dialog.open_search_replace_window,
+            ),
+            ("Open current", self.open_current_folder),
         ]
         for text, command in buttons:
             tk.Button(self.top_row_frame, text=text, command=command).pack(
@@ -51,7 +57,7 @@ class ModelControls:
         """Setup the prompt editing button."""
         tk.Button(
             self.top_row_frame,
-            text="Edit Captioner Prompt",
+            text="Edit Prompt",
             command=self.captioner.prompt_dialog.open_prompt_window,
         ).pack(side="left", padx=5)
 
@@ -90,6 +96,18 @@ class ModelControls:
             variable=self.caption_mode,
             value="all",
         ).pack(side="left", padx=5)
+
+    def open_current_folder(self):
+        """Open the current folder in the system file explorer."""
+        if self.captioner.current_folder and os.path.exists(
+            self.captioner.current_folder
+        ):
+            try:
+                subprocess.run(["open", self.captioner.current_folder])
+            except Exception as e:
+                print(f"Error opening folder: {e}")
+        else:
+            print("No folder is currently open")
 
     def run_model(self):
         """Execute the selected AI model for captioning."""

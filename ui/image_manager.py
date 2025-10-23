@@ -1,5 +1,6 @@
 import glob
 import os
+import subprocess
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
@@ -40,8 +41,9 @@ class ImageManager:
 
     def setup_image_display(self):
         """Setup the image display area."""
-        self.image_label = tk.Label(self.captioner.root)
+        self.image_label = tk.Label(self.captioner.root, cursor="hand2")
         self.image_label.pack(side="top", anchor="center")
+        self.image_label.bind("<Button-1>", self.open_current_image)
 
         # Add a label to display resolution and aspect ratio
         self.resolution_label = tk.Label(self.captioner.root, text="", font=("Arial", 10))
@@ -174,6 +176,14 @@ class ImageManager:
         except Exception as e:
             print(f"Error loading image: {e}")
             messagebox.showinfo("Error", f"There was an error loading the image: {e}")
+
+    def open_current_image(self, event=None):
+        """Open the currently displayed image with the default system application."""
+        if self.captioner.current_image_path and os.path.exists(self.captioner.current_image_path):
+            try:
+                subprocess.run(['open', self.captioner.current_image_path])
+            except Exception as e:
+                print(f"Error opening image: {e}")
 
     def check_and_color_item(self, item, file_path):
         """Check if caption exists and color the item accordingly."""

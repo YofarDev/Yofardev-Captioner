@@ -1,3 +1,5 @@
+import os
+import subprocess
 import tkinter as tk
 
 from PIL import Image,  ImageTk
@@ -10,8 +12,9 @@ class ThumbnailItem(tk.Frame):
         super().__init__(parent, bd=1, relief="solid")
         
         
-        # Store the listbox reference
+        # Store the listbox reference and image path
         self.listbox = listbox
+        self.image_path = image_path
 
         # Create and resize thumbnail to square aspect ratio
         image = Image.open(image_path)
@@ -24,6 +27,7 @@ class ThumbnailItem(tk.Frame):
         self.image_label.image = photo  # Keep reference
         self.image_label.pack(side="left", padx=2, pady=2)
         self.image_label.bind("<Button-1>", self._on_click)
+        self.image_label.bind("<Double-Button-1>", self._on_double_click)
 
         self.text_label = tk.Label(self, text=text, anchor="w", bg='gray25', fg='white')
         self.text_label.pack(side="left", fill="x", expand=True, padx=2)
@@ -35,6 +39,13 @@ class ThumbnailItem(tk.Frame):
         if self.listbox:
             self.listbox._on_select(self.listbox.items.index(self))
 
+    def _on_double_click(self, event):
+        """Open the image file with the default system application."""
+        if self.image_path and os.path.exists(self.image_path):
+            try:
+                subprocess.run(['open', self.image_path])
+            except Exception as e:
+                print(f"Error opening image: {e}")
 
     
 
