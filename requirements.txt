@@ -1,7 +1,0 @@
-Pillow
-torch
-huggingface_hub
-transformers
-mistralai
-python-dotenv
-openai

@@ -1,10 +1,10 @@
 import time
 
-from florence2 import describe_image as describe_image_florence2
-from open_ai import describe_image as describe_image
-from pixtral import describe_image as describe_image_pixtral
-from session_file import save_session
-from utils import load_file_as_string, save_caption_to_file
+from src.models.florence2 import describe_image as describe_image_florence2
+from src.models.open_ai import describe_image as describe_image
+from src.models.pixtral import describe_image as describe_image_pixtral
+from src.services.session_file import save_session
+from src.utils.utils import load_file_as_string, save_caption_to_file
 
 
 def get_caption(model, image_path, prompt):
@@ -75,22 +75,38 @@ def debounce(self):
     save_session(self)
 
 
-def on_run_pressed(self, caption_mode, model, image_paths, index, prompt):
+def on_run_pressed(self, caption_mode, model, image_paths, index, prompt, llm_queue, stop_event):
     caption = None
     if caption_mode == "single":
-        caption = get_caption(model, image_paths[0], prompt)
-        if caption:
-            save_caption(caption, image_paths[0])
+        try:
+            caption = get_caption(model, image_paths[0], prompt)
+            if caption:
+                save_caption(caption, image_paths[0])
+        except Exception as e:
+            llm_queue.put(("ERROR", str(e)))
+            return None
     else:
+        total_images = len(image_paths)
         for i, img in enumerate(image_paths):
+            if stop_event.is_set():
+                llm_queue.put(("ERROR", "Caption generation cancelled."))
+                break
+
+            llm_queue.put(("PROGRESS", (i + 1, total_images)))
+            
             # Check if the caption file is empty
             if load_file_as_string(img.rsplit(".", 1)[0] + ".txt") == "":
                 if model not in ["Florence2"]:
                     debounce(self)
-                c = get_caption(model, img, prompt)
-                if c:
-                    save_caption(c, img)
-                # If the current image is the one selected in the UI, update the caption
-                if i == index:
-                    caption = c
+                try:
+                    c = get_caption(model, img, prompt)
+                    if c:
+                        save_caption(c, img)
+                        llm_queue.put(("UPDATE_CAPTION", (img, c))) # Update UI for this image
+                    # If the current image is the one selected in the UI, update the caption
+                    if i == index:
+                        caption = c
+                except Exception as e:
+                    llm_queue.put(("ERROR", f"Error generating caption for {os.path.basename(img)}: {e}"))
+                    # Continue to next image even if one fails
     return caption if caption is not None else ""

@@ -1,30 +1,26 @@
 import os
 import subprocess
 import tkinter as tk
+import threading
+import queue
 
 from PIL import Image,  ImageTk
 
 
 class ThumbnailItem(tk.Frame):
     def __init__(
-            self, parent, image_path, text, thumbnail_size=(50, 50),listbox=None
+            self, parent, image_path, text, thumbnail_size=(50, 50), listbox=None
     ):
         super().__init__(parent, bd=1, relief="solid")
-        
         
         # Store the listbox reference and image path
         self.listbox = listbox
         self.image_path = image_path
-
-        # Create and resize thumbnail to square aspect ratio
-        image = Image.open(image_path)
-        image = self._resize_to_square(image, thumbnail_size[0])
-
-        photo = ImageTk.PhotoImage(image)
+        self.thumbnail_size = thumbnail_size
+        self.photo = None # To hold the ImageTk.PhotoImage
 
         # Create and pack widgets
-        self.image_label = tk.Label(self, image=photo)
-        self.image_label.image = photo  # Keep reference
+        self.image_label = tk.Label(self)
         self.image_label.pack(side="left", padx=2, pady=2)
         self.image_label.bind("<Button-1>", self._on_click)
         self.image_label.bind("<Double-Button-1>", self._on_double_click)
@@ -35,6 +31,27 @@ class ThumbnailItem(tk.Frame):
 
         self.configure(bg="gray25")
         
+        # Start thumbnail loading in a separate thread
+        self.load_thumbnail_thread = threading.Thread(target=self._load_thumbnail_in_background)
+        self.load_thumbnail_thread.daemon = True
+        self.load_thumbnail_thread.start()
+
+    def _load_thumbnail_in_background(self):
+        """Load and resize thumbnail in a background thread."""
+        try:
+            image = Image.open(self.image_path)
+            image = self._resize_to_square(image, self.thumbnail_size[0])
+            # Use a queue to pass the PhotoImage back to the main thread
+            self.listbox.captioner.root.after(0, self._update_thumbnail_on_main_thread, image)
+        except Exception as e:
+            print(f"Error loading thumbnail for {self.image_path}: {e}")
+
+    def _update_thumbnail_on_main_thread(self, image):
+        """Update the thumbnail on the main Tkinter thread."""
+        self.photo = ImageTk.PhotoImage(image)
+        self.image_label.config(image=self.photo)
+        self.image_label.image = self.photo # Keep reference
+
     def _on_click(self, event):
         if self.listbox:
             self.listbox._on_select(self.listbox.items.index(self))

@@ -1,7 +1,7 @@
 import tkinter as tk
 
-import settings
-from session_file import load_session
+from src.utils import settings
+from src.services.session_file import load_session
 
 from .caption_editor import CaptionEditor
 from .image_manager import ImageManager
@@ -22,6 +22,7 @@ class Captioner:
         self.current_image = ""
         self.current_image_path = ""
         self.index = 0
+        self.loading_label = None # Added for loading indicator
         
         # Initialize components
         self.caption_editor = CaptionEditor(self)
@@ -32,6 +33,7 @@ class Captioner:
         
         # Setup UI
         self.setup_ui()
+        self.setup_loading_indicator() # Added loading indicator setup
         
         # Load session
         load_session(self)
@@ -46,6 +48,20 @@ class Captioner:
         self.setup_text_entry()
         self.setup_settings_icon()
         self.bind_events()
+
+    def setup_loading_indicator(self):
+        """Setup a loading indicator."""
+        self.loading_label = tk.Label(self.root, text="Loading images...", font=("Arial", 12, "bold"), fg="blue")
+        self.loading_label.place(relx=0.5, rely=0.5, anchor="center")
+        self.loading_label.lower() # Keep it hidden initially
+
+    def show_loading_indicator(self):
+        """Show the loading indicator."""
+        self.loading_label.lift()
+
+    def hide_loading_indicator(self):
+        """Hide the loading indicator."""
+        self.loading_label.lower()
 
     def center_window(self):
         """Center the window on the screen."""

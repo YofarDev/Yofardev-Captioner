@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from session_file import save_session
+from src.services.session_file import save_session
 
 
 class PromptDialog:

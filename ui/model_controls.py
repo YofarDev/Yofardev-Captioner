@@ -1,8 +1,10 @@
 import os
 import subprocess
 import tkinter as tk
+import threading
+import queue
 
-from vision_service import on_run_pressed
+from src.services.vision_service import on_run_pressed
 
 
 class ModelControls:
@@ -17,6 +19,11 @@ class ModelControls:
         self.top_row_frame = None
         self.bottom_row_frame = None
         self.model_dropdown = None
+        self.llm_queue = queue.Queue()
+        self.llm_thread = None
+        self.stop_llm_generation = threading.Event()
+        self.run_button = None # Added to disable during LLM generation
+        self.progress_label = None # Added for LLM progress
 
     def setup_control_frame(self):
         """Setup the main control frame with two rows."""
@@ -81,9 +88,8 @@ class ModelControls:
     def setup_second_row(self):
         """Setup the second row of controls (model selection and run)."""
         self.setup_model_dropdown()
-        tk.Button(self.bottom_row_frame, text="Run", command=self.run_model).pack(
-            side="left", padx=5
-        )
+        self.run_button = tk.Button(self.bottom_row_frame, text="Run", command=self.run_model)
+        self.run_button.pack(side="left", padx=5)
         tk.Radiobutton(
             self.bottom_row_frame,
             text="For this image",
@@ -96,6 +102,9 @@ class ModelControls:
             variable=self.caption_mode,
             value="all",
         ).pack(side="left", padx=5)
+        self.progress_label = tk.Label(self.bottom_row_frame, text="", font=("Arial", 10), fg="green")
+        self.progress_label.pack(side="left", padx=5)
+        self.captioner.root.after(100, self._process_llm_queue)
 
     def open_current_folder(self):
         """Open the current folder in the system file explorer."""
@@ -110,7 +119,16 @@ class ModelControls:
             print("No folder is currently open")
 
     def run_model(self):
-        """Execute the selected AI model for captioning."""
+        """Execute the selected AI model for captioning in a background thread."""
+        self.run_button.config(state=tk.DISABLED) # Disable button during processing
+        self.progress_label.config(text="Generating caption...")
+        self.stop_llm_generation.set() # Signal any existing thread to stop
+        if self.llm_thread and self.llm_thread.is_alive():
+            self.llm_thread.join() # Wait for the thread to finish
+
+        self.llm_queue = queue.Queue()
+        self.stop_llm_generation.clear() # Reset the stop event
+
         model = self.selected_model.get()
         caption_mode = self.caption_mode.get()
 
@@ -121,12 +139,57 @@ class ModelControls:
             file_paths = list(self.captioner.file_map.values())
             index = self.captioner.index
 
+        self.llm_thread = threading.Thread(
+            target=self._generate_captions_in_background,
+            args=(caption_mode, model, file_paths, index, self.captioner.prompt_dialog.prompt_text)
+        )
+        self.llm_thread.daemon = True
+        self.llm_thread.start()
+
+    def _generate_captions_in_background(self, caption_mode, model, file_paths, index, prompt):
+        """Generate captions in a background thread."""
         caption = on_run_pressed(
             self.captioner,
             caption_mode,
             model,
             file_paths,
             index,
-            self.captioner.prompt_dialog.prompt_text,
+            prompt,
+            self.llm_queue, # Pass the queue to the service
+            self.stop_llm_generation # Pass the stop event
         )
-        self.captioner.caption_editor.set_caption_text(caption)
+        self.llm_queue.put(("COMPLETED", caption)) # Sentinel value for completion
+
+    def _process_llm_queue(self):
+        """Process LLM results from the queue and update the UI."""
+        try:
+            while not self.llm_queue.empty():
+                message_type, data = self.llm_queue.get_nowait()
+                if message_type == "COMPLETED":
+                    final_caption = data
+                    self.captioner.caption_editor.set_caption_text(final_caption)
+                    self.run_button.config(state=tk.NORMAL) # Re-enable button
+                    self.progress_label.config(text="Caption generation complete.")
+                    print("LLM caption generation complete.")
+                elif message_type == "PROGRESS":
+                    current, total = data
+                    self.progress_label.config(text=f"Generating caption... {current}/{total}")
+                elif message_type == "UPDATE_CAPTION":
+                    file_path, caption_text = data
+                    # Update the UI for a specific image if it's currently displayed
+                    if self.captioner.current_image_path == file_path:
+                        self.captioner.caption_editor.set_caption_text(caption_text)
+                elif message_type == "ERROR":
+                    error_message = data
+                    self.progress_label.config(text=f"Error: {error_message}", fg="red")
+                    self.run_button.config(state=tk.NORMAL)
+                    print(f"LLM generation error: {error_message}")
+
+        except queue.Empty:
+            pass # No items in queue yet
+
+        if self.llm_thread and self.llm_thread.is_alive() or not self.llm_queue.empty():
+            self.captioner.root.after(100, self._process_llm_queue) # Schedule next check
+        else:
+            self.run_button.config(state=tk.NORMAL)
+            self.progress_label.config(text="")

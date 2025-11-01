@@ -1,9 +1,11 @@
 import json
 import os
 
+from pathlib import Path
+from src.utils.utils import check_file_exists
 
-from utils import check_file_exists
-
+root_dir = Path(__file__).parent.parent.parent
+config_path = root_dir / "config" / "session.json"
 
 def save_session(self):
     session_data = {
@@ -14,15 +16,16 @@ def save_session(self):
         "gpt_last_used": self.gpt_last_used,
         "prompt_text": self.prompt_text,
     }
-    with open(".yofardev-captioner/session.json", "w") as f:
+    with open(config_path, "w") as f:
         json.dump(session_data, f)
 
 
 def load_session(self):
     try:
-        if not os.path.exists(".yofardev-captioner"):
-            os.makedirs(".yofardev-captioner")
-        with open(".yofardev-captioner/session.json", "r") as f:
+        # The config directory should already exist from the initial setup
+        # if not os.path.exists("config"):
+        #     os.makedirs("config")
+        with open(config_path, "r") as f:
             session_data = json.load(f)
         self.file_map = session_data.get("file_map", {})
         for file_name, file_path in self.file_map.items():

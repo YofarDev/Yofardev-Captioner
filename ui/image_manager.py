@@ -3,13 +3,15 @@ import os
 import subprocess
 import tkinter as tk
 from tkinter import filedialog, messagebox
+import threading
+import queue
 
 from PIL import Image, ImageTk
 
-from rename_images import rename_files_to_numbers
-from session_file import save_session
-from thumbnail import ThumbnailListbox
-from utils import sort_by_name, sort_files
+from src.utils.rename_images import rename_files_to_numbers
+from src.services.session_file import save_session
+from src.utils.thumbnail import ThumbnailListbox
+from src.utils.utils import sort_by_name, sort_files
 
 
 class ImageManager:
@@ -21,11 +23,15 @@ class ImageManager:
         self.image_label = None
         self.resolution_label = None
         self.frame_list = None
+        self.image_queue = queue.Queue()
+        self.loading_thread = None
+        self.stop_loading = threading.Event()
     
     def setup_image_list(self):
         """Setup the thumbnail image list."""
         self.image_list = ThumbnailListbox(self.frame_list, self.captioner)
         self.image_list.pack(side="left", fill="both", expand=True)
+        self.captioner.root.after(100, self._process_image_queue)
 
     def setup_scrollbars(self):
         """Setup scrollbars for the image list."""
@@ -55,33 +61,80 @@ class ImageManager:
             folder_path = filedialog.askdirectory()
             if folder_path:
                 self.captioner.current_folder = folder_path
+                self.captioner.show_loading_indicator() # Show loading indicator
                 self.load_images_from_folder(folder_path)
                 save_session(self.captioner)
         except Exception as e:
             print(f"Error opening folder: {e}")
 
     def load_images_from_folder(self, folder_path):
-        """Load all images from the specified folder."""
+        """Load all images from the specified folder in a background thread."""
+        # Clear existing items and reset state
+        self.stop_loading.set() # Signal any existing thread to stop
+        if self.loading_thread and self.loading_thread.is_alive():
+            self.loading_thread.join() # Wait for the thread to finish
+
         for item in self.image_list.items:
             item.destroy()
         self.image_list.items = []
         self.captioner.file_map = {}
+        self.image_queue = queue.Queue()
+        self.stop_loading.clear() # Reset the stop event
+
+        # Start background loading
+        self.loading_thread = threading.Thread(
+            target=self._load_images_in_background, args=(folder_path,)
+        )
+        self.loading_thread.daemon = True
+        self.loading_thread.start()
+
+    def _load_images_in_background(self, folder_path):
+        """Collect and sort image files in a background thread."""
         file_types = ("*.bmp", "*.jpg", "*.jpeg", "*.png")
         all_files = []
 
-        # Collect all files first
         for file_type in file_types:
             all_files.extend(glob.glob(os.path.join(folder_path, file_type)))
 
-        # Sort all files by name
         sorted_files = sort_by_name(all_files)
 
-        # Insert sorted files into the image list
         for file_path in sorted_files:
+            if self.stop_loading.is_set():
+                break
             file_name = os.path.basename(file_path)
-            self.captioner.file_map[file_name] = file_path
-            item = self.image_list.insert(file_path, file_name)
-            self.check_and_color_item(item, file_path)
+            self.image_queue.put((file_path, file_name))
+        self.image_queue.put(None) # Sentinel value to indicate completion
+
+    def _process_image_queue(self):
+        """Process images from the queue and update the UI."""
+        loading_complete = False
+        try:
+            while not self.image_queue.empty():
+                item_data = self.image_queue.get_nowait()
+                if item_data is None: # Sentinel value
+                    print("Image loading complete.")
+                    loading_complete = True
+                    break
+
+                file_path, file_name = item_data
+                self.captioner.file_map[file_name] = file_path
+                item = self.image_list.insert(file_path, file_name)
+                self.check_and_color_item(item, file_path)
+                self.image_list.canvas.yview_moveto(1) # Scroll to bottom to show new items
+
+        except queue.Empty:
+            pass # No items in queue yet
+
+        # Check if loading is complete
+        if loading_complete or (self.loading_thread and not self.loading_thread.is_alive() and self.image_queue.empty()):
+            print("All images processed and queue is empty.")
+            # Optionally, select the first image after loading is complete
+            if self.image_list.size() > 0:
+                self.image_list.select_set(0)
+                self.captioner.image_manager.display_image(None)
+            self.captioner.hide_loading_indicator() # Hide loading indicator
+        elif self.loading_thread and self.loading_thread.is_alive() or not self.image_queue.empty():
+            self.captioner.root.after(100, self._process_image_queue) # Schedule next check
 
     def open_images(self):
         """Open individual image files."""
@@ -93,26 +146,48 @@ class ImageManager:
             file_paths = sort_files(file_paths)
             if file_paths:
                 self.captioner.current_folder = os.path.dirname(file_paths[0])
+                self.captioner.show_loading_indicator() # Show loading indicator
+                
+                # Clear existing items and reset state
+                self.stop_loading.set() # Signal any existing thread to stop
+                if self.loading_thread and self.loading_thread.is_alive():
+                    self.loading_thread.join() # Wait for the thread to finish
+
                 for item in self.image_list.items:
                     item.destroy()
                 self.image_list.items = []
                 self.captioner.file_map = {}
-                for file_path in file_paths:
-                    file_name = os.path.basename(file_path)
-                    self.captioner.file_map[file_name] = file_path
-                    item = self.image_list.insert(file_path, file_name)
-                    self.check_and_color_item(item, file_path)
+                self.image_queue = queue.Queue()
+                self.stop_loading.clear() # Reset the stop event
+
+                # Start background loading for selected files
+                self.loading_thread = threading.Thread(
+                    target=self._load_selected_images_in_background, args=(file_paths,)
+                )
+                self.loading_thread.daemon = True
+                self.loading_thread.start()
                 save_session(self.captioner)
         except Exception as e:
             print(f"Error opening images: {e}")
 
+    def _load_selected_images_in_background(self, file_paths):
+        """Load selected image files in a background thread."""
+        for file_path in file_paths:
+            if self.stop_loading.is_set():
+                break
+            file_name = os.path.basename(file_path)
+            self.image_queue.put((file_path, file_name))
+        self.image_queue.put(None) # Sentinel value to indicate completion
+
     def refresh_images(self):
         """Refresh the image list from the current folder."""
         if self.captioner.current_folder:
+            self.captioner.show_loading_indicator() # Show loading indicator
             self.load_images_from_folder(self.captioner.current_folder)
 
     def rename_images(self):
         """Rename all images in the current folder to numbers."""
+        self.captioner.show_loading_indicator() # Show loading indicator
         rename_files_to_numbers(self.captioner.current_folder)
         self.load_images_from_folder(self.captioner.current_folder)
         save_session(self.captioner)

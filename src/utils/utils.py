@@ -26,35 +26,6 @@ def get_substring_starting_from_word(text, word):
         return None
 
 
-def rewrite_caption_with_trigger_phrase(txt, trigger_phrase):
-    pre_prompt = f"A {trigger_phrase} style image"
-    if txt.startswith("The image shows"):
-        new_prompt = txt.replace("The image shows", f"{pre_prompt} that shows")
-    elif txt.startswith("The image is an aerial view"):
-        new_prompt = txt.replace("The image is", f"{pre_prompt} of")
-    elif txt.startswith("The image is a close-up"):
-        new_prompt = txt.replace("The image is", f"{pre_prompt} of")
-    elif txt.startswith("The image is a macro"):
-        new_prompt = txt.replace("The image is", f"{pre_prompt} of")
-    elif txt.startswith("The image is a panorama"):
-        new_prompt = txt.replace("The image is", f"{pre_prompt} of")
-    elif txt.startswith("The image is a wide-angle"):
-        new_prompt = txt.replace("The image is", f"{pre_prompt} of")
-    elif txt.startswith("The image is a landscape"):
-        new_prompt = txt.replace("The image is", f"{pre_prompt} of").replace(
-            "landscape painting", "landscape"
-        )
-    else:
-        fs = extract_first_sentence(txt)
-        of_sentence = get_substring_starting_from_word(fs, " of ")
-        if of_sentence is None:
-            new_prompt = txt.replace(fs, f"{pre_prompt}.")
-            return new_prompt
-        else:
-            end_of_sentence = get_substring_starting_from_word(txt, of_sentence)
-            new_prompt = f"{pre_prompt}{end_of_sentence}"
-    return new_prompt.replace('illustration', 'image')
-
 def sort_files(files_path):
     def convert(text):
         return int(text) if text.isdigit() else text.lower()

@@ -2,7 +2,7 @@ import os
 import tkinter as tk
 from tkinter import messagebox
 
-from utils import save_caption_to_file
+from src.utils.utils import save_caption_to_file
 
 
 class CaptionEditor:
