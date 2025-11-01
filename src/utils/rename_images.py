@@ -10,7 +10,7 @@ def rename_files_to_numbers(folder_path):
     
     # Sort files naturally to maintain a consistent order for renumbering
     # We need to import sort_files from utils
-    from utils import sort_files
+    from .utils import sort_files
     sorted_image_files = sort_files([os.path.join(folder_path, f) for f in image_files])
     
     # Calculate padding length based on total number of files

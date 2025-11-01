@@ -145,6 +145,9 @@ class ModelControls:
         )
         self.llm_thread.daemon = True
         self.llm_thread.start()
+        
+        # Schedule queue processing to start
+        self.captioner.root.after(100, self._process_llm_queue)
 
     def _generate_captions_in_background(self, caption_mode, model, file_paths, index, prompt):
         """Generate captions in a background thread."""
@@ -162,6 +165,7 @@ class ModelControls:
 
     def _process_llm_queue(self):
         """Process LLM results from the queue and update the UI."""
+        generation_complete = False
         try:
             while not self.llm_queue.empty():
                 message_type, data = self.llm_queue.get_nowait()
@@ -171,6 +175,7 @@ class ModelControls:
                     self.run_button.config(state=tk.NORMAL) # Re-enable button
                     self.progress_label.config(text="Caption generation complete.")
                     print("LLM caption generation complete.")
+                    generation_complete = True
                 elif message_type == "PROGRESS":
                     current, total = data
                     self.progress_label.config(text=f"Generating caption... {current}/{total}")
@@ -184,12 +189,19 @@ class ModelControls:
                     self.progress_label.config(text=f"Error: {error_message}", fg="red")
                     self.run_button.config(state=tk.NORMAL)
                     print(f"LLM generation error: {error_message}")
+                    generation_complete = True
 
         except queue.Empty:
             pass # No items in queue yet
 
-        if self.llm_thread and self.llm_thread.is_alive() or not self.llm_queue.empty():
-            self.captioner.root.after(100, self._process_llm_queue) # Schedule next check
-        else:
+        # Check if generation is complete
+        if generation_complete:
+            print("Caption generation finished - stopping queue processing.")
+            # Don't reschedule
+        elif self.llm_thread and not self.llm_thread.is_alive() and self.llm_queue.empty():
+            print("Thread finished and queue empty - cleaning up.")
             self.run_button.config(state=tk.NORMAL)
             self.progress_label.config(text="")
+        else:
+            # Continue processing if thread is alive or queue has items
+            self.captioner.root.after(100, self._process_llm_queue) # Schedule next check

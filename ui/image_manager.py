@@ -87,6 +87,9 @@ class ImageManager:
         )
         self.loading_thread.daemon = True
         self.loading_thread.start()
+        
+        # Schedule queue processing to start
+        self.captioner.root.after(100, self._process_image_queue)
 
     def _load_images_in_background(self, folder_path):
         """Collect and sort image files in a background thread."""
@@ -126,14 +129,21 @@ class ImageManager:
             pass # No items in queue yet
 
         # Check if loading is complete
-        if loading_complete or (self.loading_thread and not self.loading_thread.is_alive() and self.image_queue.empty()):
-            print("All images processed and queue is empty.")
+        if loading_complete:
+            print("Image loading complete - hiding indicator.")
             # Optionally, select the first image after loading is complete
             if self.image_list.size() > 0:
                 self.image_list.select_set(0)
                 self.captioner.image_manager.display_image(None)
             self.captioner.hide_loading_indicator() # Hide loading indicator
-        elif self.loading_thread and self.loading_thread.is_alive() or not self.image_queue.empty():
+        elif self.loading_thread and not self.loading_thread.is_alive() and self.image_queue.empty():
+            print("Thread finished and queue empty - hiding indicator.")
+            if self.image_list.size() > 0:
+                self.image_list.select_set(0)
+                self.captioner.image_manager.display_image(None)
+            self.captioner.hide_loading_indicator() # Hide loading indicator
+        else:
+            # Continue processing if thread is alive or queue has items
             self.captioner.root.after(100, self._process_image_queue) # Schedule next check
 
     def open_images(self):
@@ -166,6 +176,9 @@ class ImageManager:
                 )
                 self.loading_thread.daemon = True
                 self.loading_thread.start()
+                
+                # Schedule queue processing to start
+                self.captioner.root.after(100, self._process_image_queue)
                 save_session(self.captioner)
         except Exception as e:
             print(f"Error opening images: {e}")
