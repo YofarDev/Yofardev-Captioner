@@ -1,0 +1,24 @@
+app:
+  name: "Yofardev Captioner"
+  version: "1.0.0"
+
+storage:
+  type: "sqlite"
+  # Path will default to ~/.yofardev-captioner/session.db if not specified
+
+models:
+  openai:
+    type: "openai"
+    modelName: "gpt-4o"
+    apiKeyEnv: "OPENAI_API_KEY"
+  gemini:
+    type: "openai" # Gemini uses OpenAI-compatible API
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/models"
+    modelName: "gemini-pro-vision"
+    apiKeyEnv: "GEMINI_API_KEY"
+  pixtral:
+    type: "mistral"
+    modelName: "mistral-large-latest"
+    apiKeyEnv: "MISTRAL_API_KEY"
+  florence2:
+    type: "florence2"

@@ -5,3 +5,7 @@ transformers
 mistralai
 python-dotenv
 openai
+onnx
+onnxruntime
+einops
+timm
