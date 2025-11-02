@@ -1,5 +1,5 @@
 import time
-
+import os
 from src.models.florence2 import describe_image as describe_image_florence2
 from src.models.open_ai import describe_image as describe_image
 from src.models.pixtral import describe_image as describe_image_pixtral
@@ -65,13 +65,16 @@ def save_caption(caption, image_path):
 
 
 def debounce(self):
+    MIN_DELAY = 4.5  # 15 requests per minute = 4 seconds, plus 0.5s safety margin
     current_time = time.time()
-    time_diff = 10
+    
     if self.gpt_last_used:
         time_diff = current_time - self.gpt_last_used
-    if time_diff < 6:
-        time.sleep(6 - time_diff)
-    self.gpt_last_used = current_time
+        if time_diff < MIN_DELAY:
+            time.sleep(MIN_DELAY - time_diff)
+    
+    # Update timestamp AFTER sleep to reflect actual request time
+    self.gpt_last_used = time.time()
     save_session(self)
 
 
