@@ -8,7 +8,7 @@ Simple program to help write caption for images. With the help of vision models 
  -   Gemini 1.5 Flash
  -   Qwen2 72B
 
-![1724075364478](image/README/ui.png)
+![1724075364478](assets/image/README/ui.png)
 
 ## Installation
 
